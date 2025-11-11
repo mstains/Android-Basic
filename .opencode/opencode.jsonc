@@ -1,0 +1,26 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "username": "wuboqing",
+  "default_agent": "build",
+  "agent": {
+    "android-developer":{
+      "description": "Android高级开发工程师",
+      //要区分mode 和model的区别
+      "mode": "primary",
+      //当 prompt 很长时，可以引用外部文件
+      "prompt": "{file:./prompts/android-developer-agent.md}",
+      "temperature": 0.5,
+      "color": "#4CAF50"
+    },
+    //本地化
+    "android-localization": {
+      "description": "Android字符串本地化",
+      "mode": "primary",
+      "prompt": "{file:./prompts/android-localization-prompts.md}",
+      "temperature": 0.5,
+      "steps": 30,
+      "color": "#4CAF50"
+    }
+
+  }
+}

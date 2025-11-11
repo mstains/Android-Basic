@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">BasicApplication</string>
+    <string name="app_business_trip_text">因公出差</string>
+    <string name="app_hotel_text">酒店</string>
 </resources>
