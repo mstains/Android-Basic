@@ -27,17 +27,20 @@ inline fun <reified T : Activity> Context.baseStartActivity(vararg params: Pair<
 inline fun <reified T : Activity> Activity.startActivityForResult(
     requestCode: Int, vararg params: Pair<String, Any?>
 ) {
-    internalStartActivityForResult(this, T::class.java, requestCode, params)
+    startActivityForResult(createIntent(this, T::class.java, params), requestCode)
 }
 
+
+inline fun <reified T : Activity> Fragment.startActivity(vararg params: Pair<String, Any?>) {
+    internalStartActivity(requireContext(), T::class.java, params)
+
+}
 
 inline fun <reified T : Activity> Fragment.startActivityForResult(
     requestCode: Int, vararg params: Pair<String, Any?>
 ) {
 
-    startActivityForResult(
-        createIntent(activity!!, T::class.java, params), requestCode
-    )
+    startActivityForResult(createIntent(requireContext(), T::class.java, params), requestCode)
 
 }
 
@@ -47,6 +50,7 @@ inline fun <reified T : Service> Context.startService(vararg params: Pair<String
 
 inline fun <reified T : Service> Fragment.startService(vararg params: Pair<String, Any?>) =
     internalStartService(activity!!, T::class.java, params)
+
 
 inline fun <reified T : Service> Context.stopService(vararg params: Pair<String, Any?>) =
     internalStopService(this, T::class.java, params)
@@ -103,16 +107,6 @@ private fun fillIntentArguments(intent: Intent, params: Array<out Pair<String, A
         }
         return@forEach
     }
-}
-
-
-fun internalStartActivityForResult(
-    act: Activity,
-    activity: Class<out Activity>,
-    requestCode: Int,
-    params: Array<out Pair<String, Any?>>
-) {
-    act.startActivityForResult(createIntent(act, activity, params), requestCode)
 }
 
 

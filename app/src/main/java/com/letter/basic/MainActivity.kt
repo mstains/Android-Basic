@@ -2,13 +2,16 @@ package com.letter.basic
 
 
 import android.view.LayoutInflater
-import androidx.fragment.app.FragmentActivity
 import com.letter.basic.activity.BaseMultiStateVBActivity
 
 import com.letter.basic.databinding.ActivityMainBinding
 
 
 class MainActivity : BaseMultiStateVBActivity<ActivityMainBinding>() {
+
+
+
+
     /**
      * 创建viewBinding
      * */
