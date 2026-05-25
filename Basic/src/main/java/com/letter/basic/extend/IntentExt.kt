@@ -24,19 +24,26 @@ inline fun <reified T : Activity> Context.baseStartActivity(vararg params: Pair<
 }
 
 
-inline fun <reified T : Activity> Activity.startActivityForResult(
+inline fun <reified T : Activity> Activity.baseStartActivity(vararg params: Pair<String, Any?>) {
+
+    internalStartActivity(this, T::class.java, params)
+}
+
+
+inline fun <reified T : Activity> Fragment.baseStartActivity(vararg params: Pair<String, Any?>) {
+
+    internalStartActivity(requireContext(), T::class.java, params)
+}
+
+
+inline fun <reified T : Activity> Activity.baseStartActivityForResult(
     requestCode: Int, vararg params: Pair<String, Any?>
 ) {
     startActivityForResult(createIntent(this, T::class.java, params), requestCode)
 }
 
 
-inline fun <reified T : Activity> Fragment.startActivity(vararg params: Pair<String, Any?>) {
-    internalStartActivity(requireContext(), T::class.java, params)
-
-}
-
-inline fun <reified T : Activity> Fragment.startActivityForResult(
+inline fun <reified T : Activity> Fragment.baseStartActivityForResult(
     requestCode: Int, vararg params: Pair<String, Any?>
 ) {
 
