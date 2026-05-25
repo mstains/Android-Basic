@@ -1,4 +1,4 @@
-# Basic
+# Android-Basic
 
 Android 基础依赖库，基于 MVVM 架构封装 Activity、Fragment、DialogFragment 基类及常用扩展函数，支持快速集成 ViewBinding、ViewModel、本地广播。
 
@@ -20,7 +20,7 @@ dependencyResolutionManagement {
 **Step 2** — 在模块 `build.gradle` 中添加依赖：
 
 ```groovy
-implementation 'com.github.mstains:Basic:1.1'
+implementation 'com.github.mstains:Android-Basic:1.1'
 ```
 
 ## 基类使用

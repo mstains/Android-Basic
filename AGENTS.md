@@ -1,4 +1,4 @@
-# AGENTS.md - BasicApplication 项目指南
+# AGENTS.md - Android-Basic 项目指南
 
 ## Additional Rules
 - 始终使用简体中文回答
@@ -9,7 +9,7 @@
 ## 项目结构
 
 - `app/` - Android 应用模块
-- `Basic/` - Android 库模块，发布到 JitPack (com.github.mstains:Basic:1.1)
+- `Basic/` - Android 库模块，发布到 JitPack (com.github.mstains:Android-Basic:1.1)
 
 ## 构建命令
 
