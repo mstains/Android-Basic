@@ -338,8 +338,13 @@ for pattern in "${SENSITIVE_FILES[@]}"; do
   done < <(find . -name "$pattern" -not -path "./.gradle/*" -not -path "./build/*" -not -path "./.idea/*" -print0 2>/dev/null)
 done
 
-# 扫描已暂存文件中的敏感内容（仅扫描文本文件）
-echo "$STAGED" | grep -E '^[AM]\s+' | cut -f2 | grep -E '\.(kt|java|xml|gradle|properties|json|yml|yaml|txt|conf)$' | while IFS= read -r f; do
+# 白名单目录（skill 自身的规则定义文件、文档等，不扫描）
+IGNORE_DIRS="^\.opencode/"
+
+# 扫描已暂存文件中的敏感内容（仅扫描文本文件，排除白名单目录）
+echo "$STAGED" | grep -E '^[AM]\s+' | cut -f2 |
+  grep -E '\.(kt|java|xml|gradle|properties|json|yml|yaml|txt|conf)$' |
+  grep -vE "$IGNORE_DIRS" | while IFS= read -r f; do
   for pat in "${SENSITIVE_PATTERNS[@]}"; do
     matches=$(git diff --cached "$f" | grep '^+' | grep -iE "$pat" | head -5)
     if [ -n "$matches" ]; then
@@ -404,15 +409,26 @@ done
 根据变更文件的路径前缀，统计出现最多的模块名作为 scope：
 
 ```bash
-# 从已暂存文件中统计路径前缀
-echo "$STAGED" | grep -E '^[AM]\s+' | cut -f2 |
+# 从已暂存文件中推断 scope
+# 优先匹配标准模块路径（含有 /src/ 的），提取模块名
+SCOPE=$(echo "$STAGED" | grep -E '^[AM]\s+' | cut -f2 |
   grep -E '\.(kt|java|xml)$' |
-  sed -E 's|.*/([^/]+)/src/.*|\1|' |
+  sed -nE 's|.*/([^/]+)/src/.*|\1|p' |
   sort | uniq -c | sort -rn | head -1 |
-  awk '{print $2}'
+  awk '{print $2}')
+
+# 若未匹配到标准模块路径（如 .md 文件、gradle 配置等），
+# 取第一个变更文件路径的第一级目录名
+if [ -z "$SCOPE" ]; then
+  SCOPE=$(echo "$STAGED" | grep -E '^[AM]\s+' | cut -f2 |
+    head -1 | cut -d'/' -f1)
+fi
+
+# 最终 fallback
+SCOPE=${SCOPE:-app}
 ```
 
-优先级：统计结果 > `app` > 空
+优先级：自动推断 > 第一级目录名 > `app`
 
 ### 3.4 确定 commit type
 
@@ -494,7 +510,80 @@ fi
 
 若仍然失败，向用户展示 hook 错误信息，停止流程。
 
-### 4.4 拉取远端
+### 4.4 SSH 密钥管理
+
+若远端使用 SSH 协议（`git@github.com:...`），在连接前先处理 SSH 密钥：
+
+```bash
+# ===== 检测远端协议 =====
+REMOTE_URL=$(git remote get-url origin)
+if echo "$REMOTE_URL" | grep -q '^git@'; then
+  echo "远端使用 SSH 协议"
+  
+  # 确保 ssh-agent 在运行
+  eval "$(ssh-agent -s)" &>/dev/null
+  
+  # 列出本地 SSH 私钥，检查是否有密码保护
+  echo ""
+  echo "--- 检查 SSH 密钥 ---"
+  for key in ~/.ssh/id_rsa ~/.ssh/id_ed25519 ~/.ssh/id_ecdsa; do
+    if [ -f "$key" ]; then
+      # 尝试用空密码签名，若失败则说明有密码保护
+      if ssh-keygen -y -f "$key" -P "" &>/dev/null; then
+        echo "✓ $key（无密码，可直接使用）"
+      else
+        echo "🔑 $key（有密码保护，需输入密码解锁）"
+        # 检查该密钥是否已添加到 ssh-agent
+        if ! ssh-add -l | grep -q "$(ssh-keygen -lf "$key" 2>/dev/null | awk '{print $2}')"; then
+          echo "  该密钥尚未缓存到 ssh-agent"
+          echo ""
+          echo "  请输入 SSH 密钥密码（输入后仅当前会话有效）："
+          echo "  命令: ssh-add $key"
+        fi
+      fi
+    fi
+  done
+else
+  echo "远端使用 HTTPS 协议，跳过 SSH 密钥处理"
+fi
+```
+
+#### 操作流程
+
+1. 扫描 `~/.ssh/` 下所有私钥（`id_rsa`、`id_ed25519`、`id_ecdsa`）
+2. 用 `ssh-keygen -y -f <key> -P ""` 检测是否设了密码（空密码签名成功 → 无密码；失败 → 有密码）
+3. 对有密码的密钥，用 `ssh-add -l` 检查是否已缓存到 `ssh-agent`
+4. 若未缓存，**提示用户输入密码**：执行 `ssh-add ~/.ssh/id_ed25519` 并输入密码
+5. 用 `ssh -T git@github.com` 验证认证是否通过
+
+> **提示**：密码仅缓存在当前 `ssh-agent` 会话中，终端关闭后失效。如需持久化，可配置 `~/.ssh/config` 的 `AddKeysToAgent` 选项。
+
+```bash
+# 验证认证
+echo ""
+echo "--- 验证 GitHub 认证 ---"
+ssh -T git@github.com 2>&1 || echo "⚠️ 认证失败，请检查密码是否正确"
+```
+
+### 4.5 拉取远端
+
+拉取前先检查远端连接是否可用：
+
+```bash
+# 检查远端连接
+if ! git ls-remote --exit-code origin "$BRANCH" &>/dev/null; then
+  echo "⚠️ 无法连接远端仓库，请检查："
+  echo "  1. SSH key 是否配置（ssh -T git@github.com）"
+  echo "  2. 远端仓库地址是否正确（git remote -v）"
+  echo "  3. 网络代理是否正常"
+  echo ""
+  echo "远端连接修复后，手动执行以下命令继续："
+  echo "  git push origin $BRANCH"
+  exit 1
+fi
+```
+
+连接正常后：
 
 ```bash
 # 获取远端最新内容
@@ -504,12 +593,12 @@ git fetch origin
 GIT_EDITOR=true git pull --rebase origin "$BRANCH"
 ```
 
-### 4.5 判断拉取结果
+### 4.6 判断拉取结果
 
 - **退出码为 0** → 拉取成功，无冲突 → 跳转到 **Step 5**
-- **退出码非 0** → 存在冲突 → 执行 **Step 4.6**
+- **退出码非 0** → 存在冲突 → 执行 **Step 4.7**
 
-### 4.6 冲突处理
+### 4.7 冲突处理
 
 首先提供逃生路径：
 
@@ -591,8 +680,27 @@ done
 
 ### 5.1 无冲突时直接推送
 
+推送前先确认 SSH 密钥已加载（若使用 SSH 协议）。若之前未执行 Step 4.4，按以下方式检查：
+
 ```bash
-# 推送到远端
+# 检查远端协议并确保密钥已缓存
+REMOTE_URL=$(git remote get-url origin)
+if echo "$REMOTE_URL" | grep -q '^git@'; then
+  if ! ssh -T git@github.com 2>&1 | grep -q "successfully"; then
+    echo "🔑 SSH 密钥未缓存，请执行以下命令输入密码："
+    echo "  eval \$(ssh-agent -s)"
+    echo "  ssh-add ~/.ssh/id_ed25519"
+    echo "然后重新推送。"
+    exit 1
+  fi
+fi
+
+# 推送到前再次确认远端连接
+if ! git ls-remote --exit-code origin "$BRANCH" &>/dev/null; then
+  echo "⚠️ 无法连接远端仓库，请检查 SSH/网络配置"
+  exit 1
+fi
+
 git push origin "$BRANCH"
 ```
 
@@ -606,7 +714,7 @@ git fetch origin
 GIT_EDITOR=true git pull --rebase origin "$BRANCH"
 ```
 
-然后退回 Step 4.5 的冲突检查流程。
+然后退回 Step 4.6 的冲突检查流程。
 
 若连续失败 2 次以上，告知用户当前状态并建议手动处理。
 
@@ -621,6 +729,7 @@ Step 2: 从缓存提取 AM 文件 → 逐文件补全注释
 Step 3: lint 预检查 → 资源一致性检查 → 推断 scope/type → 生成 commit message
 Step 4: 询问未跟踪文件 → git add → git commit
   ├─ pre-commit hook 失败 → 重新 stage → 重试 commit
+  ├─ SSH 密钥管理 → 检测密钥密码 → 提示输入 → ssh-add 缓存
   ├─ git fetch → git pull --rebase
   │   ├─ 无冲突 → 跳转 Step 5
   │   └─ 有冲突 → 提取冲突标记 → 输出报告 → 停止
@@ -643,6 +752,9 @@ Step 5: git push origin <branch>
 | `git pull --rebase` 冲突 | 输出冲突报告，提供逃生 `rebase --abort` |
 | 用户解决完冲突 | `git rebase --continue` → Step 5 |
 | 推送被拒绝 | 再次 fetch + rebase，不超过 2 次 |
+| 远端连接失败（SSH key/网络问题） | 展示排查指南（SSH配置/仓库地址/代理），`exit 1` 停止流程 |
+| `.opencode/` 目录下的文件触发敏感信息扫描 | 白名单自动忽略（skill 规则定义文件） |
+| scope 推断无匹配（非标准模块路径） | 自动回退到第一级目录名，最终 fallback 为 `app` |
 | 二进制文件变更 | 跳过注释，在变更描述中标注 |
 | 文件删除（D） | 跳过注释 |
 | 资源文件（strings/colors）缺少翻译 | 警告但不阻塞 |
