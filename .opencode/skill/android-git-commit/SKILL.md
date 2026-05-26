@@ -472,21 +472,12 @@ SCOPE=${SCOPE:-app}
 
 ## Step 4：暂存 & 提交 & 拉取远端
 
-### 4.1 询问用户是否包含未跟踪文件
+### 4.1 暂存所有变更
 
-若有未跟踪文件（`??`），**询问用户**是否添加：
-
-```
-检测到以下未跟踪文件：
-  app/src/main/.../NewFeature.kt
-  Basic/src/main/.../temp_test.log
-是否全部添加？(y/n/选择添加)
-```
-
-### 4.2 暂存 & 提交
+直接暂存所有变更（包括未跟踪文件），无需询问：
 
 ```bash
-# 暂存所有变更（加上用户确认的未跟踪文件）
+# 暂存所有变更 + 未跟踪文件
 git add -A
 
 # 提交
@@ -727,7 +718,7 @@ Step 0: 检查 .gitignore 配置
 Step 1: 一次性采集变更信息 → 缓存 STAGED/UNSTAGED/UNTRACKED
 Step 2: 从缓存提取 AM 文件 → 逐文件补全注释
 Step 3: lint 预检查 → 资源一致性检查 → 推断 scope/type → 生成 commit message
-Step 4: 询问未跟踪文件 → git add → git commit
+Step 4: git add -A（含未跟踪文件） → git commit
   ├─ pre-commit hook 失败 → 重新 stage → 重试 commit
   ├─ SSH 密钥管理 → 检测密钥密码 → 提示输入 → ssh-add 缓存
   ├─ git fetch → git pull --rebase
@@ -743,7 +734,7 @@ Step 5: git push origin <branch>
 |------|---------|
 | `.gitignore` 缺失 | 自动检测项目结构并生成标准配置 |
 | 工作区有未暂存更改 | 合并到 staged 一起处理 |
-| 未跟踪文件 | 询问用户是否添加 |
+| 未跟踪文件 | 直接 `git add -A` 一并提交 |
 | lint 检查有错误 | 展示错误列表，询问是否继续 |
 | 检测到敏感文件（`.jks`/`.keystore`/`signing.properties`） | 阻塞并展示文件路径，要求用户确认 |
 | 代码中检测到密码/密钥硬编码 | 脱敏展示所在行，询问是否确认提交 |
