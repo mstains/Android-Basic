@@ -31,7 +31,7 @@ abstract class BaseMultiStateVBVMActivity<VB : ViewBinding, VM : ViewModel> :
     }
 
 
-    private fun initMultiState() {
+    open fun initMultiState() {
         mViewModel.let {
             lifecycle.addObserver(this@BaseMultiStateVBVMActivity)
         }
