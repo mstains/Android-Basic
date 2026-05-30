@@ -1,1 +1,3 @@
 /build
+gradle-daemon-jvm.properties
+**/gradle-daemon-jvm.properties
