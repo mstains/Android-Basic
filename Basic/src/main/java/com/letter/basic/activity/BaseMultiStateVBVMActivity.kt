@@ -27,15 +27,10 @@ abstract class BaseMultiStateVBVMActivity<VB : ViewBinding, VM : ViewModel> :
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         startObserve()
-        initMultiState()
     }
 
 
-    open fun initMultiState() {
-        mViewModel.let {
-            lifecycle.addObserver(this@BaseMultiStateVBVMActivity)
-        }
-    }
+
 
 
     /**
