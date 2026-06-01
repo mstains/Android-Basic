@@ -24,9 +24,9 @@ afterEvaluate{
     publishing {
         // 配置maven 仓库
 //        repositories {
-//            // build/outputs/maven_repo
+        // build/outputs/maven_repo
 //            maven { url uri(new File(buildDir, "outputs/maven_repo").path) }
-//        }
+        // }
         // 配置发布产物
         publications {
 
@@ -125,7 +125,6 @@ afterEvaluate{
 
 
 
-
 android {
     namespace 'com.letter.basic'
     compileSdk 35
@@ -148,6 +147,7 @@ android {
         }
     }
     compileOptions {
+        coreLibraryDesugaringEnabled true
         sourceCompatibility JavaVersion.VERSION_21
         targetCompatibility JavaVersion.VERSION_21
     }
@@ -157,6 +157,7 @@ android {
 }
 
 dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
 
     implementation libs.androidx.core.ktx
     implementation libs.androidx.appcompat

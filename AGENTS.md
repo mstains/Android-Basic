@@ -47,3 +47,7 @@
 - Basic 模块命名空间: `com.letter.basic`
 - app 模块命名空间: `com.letter.basic`
 - 两者均启用 viewBinding
+
+## 项目规则
+- 扩展函数统一放在 `Basic/src/main/java/com/letter/basic/extend/`
+- 使用 `./gradlew :Basic:assembleRelease` 构建库模块发布到 JitPack

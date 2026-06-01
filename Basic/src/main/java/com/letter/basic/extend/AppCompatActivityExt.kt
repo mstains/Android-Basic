@@ -131,6 +131,7 @@ fun AppCompatActivity.closeKeyBoard(editText: EditText) {
 /**
  * 设置状态栏透明
  */
+@Deprecated("使用egdetoedge()")
 fun AppCompatActivity.setStatusBarFullTransparent() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
         val window = window

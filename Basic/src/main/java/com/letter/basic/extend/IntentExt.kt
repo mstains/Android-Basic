@@ -18,31 +18,32 @@ import java.io.Serializable
  * ******************************************
  */
 
+@Deprecated("废弃，请使用ResultCallbackLauncher")
 inline fun <reified T : Activity> Context.baseStartActivity(vararg params: Pair<String, Any?>) {
 
     internalStartActivity(this, T::class.java, params)
 }
 
-
+@Deprecated("废弃，请使用ResultCallbackLauncher")
 inline fun <reified T : Activity> Activity.baseStartActivity(vararg params: Pair<String, Any?>) {
 
     internalStartActivity(this, T::class.java, params)
 }
 
-
+@Deprecated("废弃，请使用ResultCallbackLauncher")
 inline fun <reified T : Activity> Fragment.baseStartActivity(vararg params: Pair<String, Any?>) {
 
     internalStartActivity(requireContext(), T::class.java, params)
 }
 
-
+@Deprecated("废弃，请使用ResultCallbackLauncher")
 inline fun <reified T : Activity> Activity.baseStartActivityForResult(
     requestCode: Int, vararg params: Pair<String, Any?>
 ) {
     startActivityForResult(createIntent(this, T::class.java, params), requestCode)
 }
 
-
+@Deprecated("废弃，请使用ResultCallbackLauncher")
 inline fun <reified T : Activity> Fragment.baseStartActivityForResult(
     requestCode: Int, vararg params: Pair<String, Any?>
 ) {

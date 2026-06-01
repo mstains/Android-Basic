@@ -18,7 +18,6 @@ import androidx.viewbinding.ViewBinding
  */
 abstract class BaseMultiStateVBActivity<VB : ViewBinding> : BaseCommonMultiStateActivity() {
 
-
     /**
      * viewBinding应用对象
      * */
@@ -35,11 +34,6 @@ abstract class BaseMultiStateVBActivity<VB : ViewBinding> : BaseCommonMultiState
 
 
     }
-
-
-
-
-
 
 
     /**
