@@ -19,7 +19,7 @@ import androidx.lifecycle.LifecycleOwner
  * 完美解决 Activity 销毁重建、内存回收导致的回调丢失问题
  */
 class ResultCallbackLauncher<I, O>(
-    lifecycleOwner: LifecycleOwner,
+    private val lifecycleOwner: LifecycleOwner,
     private val contract: ActivityResultContract<I, O>,
     private val registryProvider: () -> androidx.activity.result.ActivityResultRegistry
 ) : DefaultLifecycleObserver {
@@ -34,7 +34,7 @@ class ResultCallbackLauncher<I, O>(
 
     override fun onCreate(owner: LifecycleOwner) {
         // 严格在 STARTED 状态之前完成底层的核心注册
-        launcher = registryProvider().register("callback_launcher_${owner.hashCode()}", contract) { result ->
+        launcher = registryProvider().register("callback_launcher_${System.identityHashCode(this)}", contract) { result ->
             callback?.invoke(result)
         }
     }
@@ -53,6 +53,7 @@ class ResultCallbackLauncher<I, O>(
         launcher?.unregister()
         callback = null
         launcher = null
+        lifecycleOwner.lifecycle.removeObserver(this) // 显式移除观察者
     }
 }
 
@@ -142,10 +143,10 @@ fun ResultCallbackLauncher<PickVisualMediaRequest, Uri?>.launchVideoOnly(onResul
     this.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly), onResult)
 }
 
-fun ComponentActivity.registerMultiplePhotoPickerLauncher() = registerResultLauncher(ActivityResultContracts.PickMultipleVisualMedia())
-fun Fragment.registerMultiplePhotoPickerLauncher() = registerResultLauncher(ActivityResultContracts.PickMultipleVisualMedia())
+fun ComponentActivity.registerMultiplePhotoPickerLauncher(maxItems: Int = 9) = registerResultLauncher(ActivityResultContracts.PickMultipleVisualMedia(maxItems))
+fun Fragment.registerMultiplePhotoPickerLauncher(maxItems: Int = 9,) = registerResultLauncher(ActivityResultContracts.PickMultipleVisualMedia(maxItems))
 
-fun ResultCallbackLauncher<PickVisualMediaRequest, List<Uri>>.launchImagesAndVideos(maxItems: Int = 9, onResult: (List<Uri>) -> Unit) {
+fun ResultCallbackLauncher<PickVisualMediaRequest, List<Uri>>.launchImagesAndVideos(onResult: (List<Uri>) -> Unit) {
     this.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo), onResult)
 }
 
