@@ -34,9 +34,9 @@ fun String?.formatDateTime(pattern: String = "yyyy-MM-dd HH:mm:ss"): LocalDateTi
 /**
  * 将 LocalDate 格式化为字符串，pattern 不合法时返回 null
  */
-fun LocalDate.toDisplayString(pattern: String = "yyyy-MM-dd"): String? {
+fun LocalDate?.toDisplayString(pattern: String = "yyyy-MM-dd"): String? {
     return try {
-        this.format(DateTimeFormatter.ofPattern(pattern))
+        this?.format(DateTimeFormatter.ofPattern(pattern))
     } catch (_: Exception) {
         null
     }
@@ -45,9 +45,9 @@ fun LocalDate.toDisplayString(pattern: String = "yyyy-MM-dd"): String? {
 /**
  * 将 LocalDateTime 格式化为字符串，pattern 不合法时返回 null
  */
-fun LocalDateTime.toDisplayString(pattern: String = "yyyy-MM-dd HH:mm:ss"): String? {
+fun LocalDateTime?.toDisplayString(pattern: String = "yyyy-MM-dd HH:mm:ss"): String? {
     return try {
-        this.format(DateTimeFormatter.ofPattern(pattern))
+        this?.format(DateTimeFormatter.ofPattern(pattern))
     } catch (_: Exception) {
         null
     }
