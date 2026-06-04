@@ -15,8 +15,21 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 
 /**
- * 核心引擎：绑定生命周期的闭包式结果启动器
- * 完美解决 Activity 销毁重建、内存回收导致的回调丢失问题
+ * 生命周期安全的结果启动器。
+ *
+ * 内部使用 [DefaultLifecycleObserver] 监听 [lifecycleOwner] 的 onCreate / onDestroy：
+ * - onCreate：通过 [registryProvider] 获取的 [androidx.activity.result.ActivityResultRegistry]
+ *   注册一个 key 唯一的 [ActivityResultLauncher]，避免多实例冲突。
+ * - onDestroy：注销 launcher、清空回调、移除观察者，彻底释放引用以防内存泄漏。
+ *
+ * 调用方应使用顶层 [registerResultLauncher] 工厂方法创建实例，
+ * 然后在子类字段中持有并在合适的生命周期调用 [launch]。
+ *
+ * @param I 启动输入类型
+ * @param O 启动结果类型
+ * @param lifecycleOwner 绑定生命周期的所有者（Activity / Fragment）
+ * @param contract 注册到 ActivityResultRegistry 的结果契约
+ * @param registryProvider 提供 [androidx.activity.result.ActivityResultRegistry] 的工厂
  */
 class ResultCallbackLauncher<I, O>(
     private val lifecycleOwner: LifecycleOwner,
@@ -28,19 +41,24 @@ class ResultCallbackLauncher<I, O>(
     private var callback: ((O) -> Unit)? = null
 
     init {
-        // 核心安全设计：在初始化时自动挂载生命周期观察者
+        // 必须立即挂载：onCreate 之前若 owner 已处于 STARTED 状态，
+        // 系统不会再回调 onCreate，launcher 将无法注册。
         lifecycleOwner.lifecycle.addObserver(this)
     }
 
     override fun onCreate(owner: LifecycleOwner) {
-        // 严格在 STARTED 状态之前完成底层的核心注册
+        // 使用 System.identityHashCode 区分多个同类型 launcher，避免注册 key 冲突
         launcher = registryProvider().register("callback_launcher_${System.identityHashCode(this)}", contract) { result ->
             callback?.invoke(result)
         }
     }
 
     /**
-     * 发起跳转并同步绑定闭包回调
+     * 发起跳转并同步绑定结果回调。
+     *
+     * @param input 启动输入参数，类型由 contract 决定
+     * @param onResult 结果返回闭包，回调运行在主线程
+     * @throws IllegalStateException 当 launcher 尚未初始化（owner 未进入 onCreate 之后）时抛出
      */
     fun launch(input: I, onResult: (O) -> Unit) {
         this.callback = onResult
@@ -49,37 +67,57 @@ class ResultCallbackLauncher<I, O>(
 
     override fun onDestroy(owner: LifecycleOwner) {
         super.onDestroy(owner)
-        // 界面销毁时自动注销并清空闭包，彻底杜绝内存泄漏
         launcher?.unregister()
         callback = null
         launcher = null
-        lifecycleOwner.lifecycle.removeObserver(this) // 显式移除观察者
+        lifecycleOwner.lifecycle.removeObserver(this)
     }
 }
 
-// =====================================================================
-// 基础扩展：支持外部传入任何自定义 Contract
-// =====================================================================
-
+/**
+ * 通用结果启动器注册入口（Activity 重载）。
+ *
+ * @param I 输入类型
+ * @param O 输出类型
+ * @param contract 结果契约
+ * @return 与当前 Activity 生命周期绑定的 [ResultCallbackLauncher]
+ */
 fun <I, O> ComponentActivity.registerResultLauncher(contract: ActivityResultContract<I, O>) =
     ResultCallbackLauncher(this, contract) { this.activityResultRegistry }
 
+/**
+ * 通用结果启动器注册入口（Fragment 重载）。
+ *
+ * @param I 输入类型
+ * @param O 输出类型
+ * @param contract 结果契约
+ * @return 与当前 Fragment 生命周期绑定的 [ResultCallbackLauncher]
+ */
 fun <I, O> Fragment.registerResultLauncher(contract: ActivityResultContract<I, O>) =
     ResultCallbackLauncher(this, contract) { this.requireActivity().activityResultRegistry }
 
 
-// =====================================================================
-// 场景一：万能 Activity 间跳转（一变量通吃应用内所有 Activity 交互）
-// =====================================================================
-
+/**
+ * 注册 [ActivityResultContracts.StartActivityForResult] 启动器（Activity 重载）。
+ *
+ * @return 用于启动任意 Activity 并接收 [ActivityResult] 的 [ResultCallbackLauncher]
+ */
 fun ComponentActivity.registerActivityLauncher() = registerResultLauncher(ActivityResultContracts.StartActivityForResult())
+
+/**
+ * 注册 [ActivityResultContracts.StartActivityForResult] 启动器（Fragment 重载）。
+ *
+ * @return 用于启动任意 Activity 并接收 [ActivityResult] 的 [ResultCallbackLauncher]
+ */
 fun Fragment.registerActivityLauncher() = registerResultLauncher(ActivityResultContracts.StartActivityForResult())
 
 /**
- * 闭包式启动任意自定义 Activity
- * @param targetClazz 目标 Activity 类（例如: DetailActivity::class.java）
- * @param intentAction 用于 Intent 的初始化配置（如 putExtra 传参）
- * @param onResult 结果返回闭包（包含 resultCode 和返回的 Intent 携带数据）
+ * 启动任意自定义 Activity 并通过闭包接收结果。
+ *
+ * @param T 目标 Activity 类型
+ * @param context 启动方 Context（用于构造 Intent）
+ * @param intentAction 在 Intent 上执行的配置 Lambda（用于 putExtra 等）
+ * @param onResult 结果返回闭包，包含 resultCode 与返回的 Intent 数据
  */
 inline fun <reified T : Activity> ResultCallbackLauncher<Intent, ActivityResult>.launchActivity(
     context: Context,
@@ -93,17 +131,28 @@ inline fun <reified T : Activity> ResultCallbackLauncher<Intent, ActivityResult>
 }
 
 
-// =====================================================================
-// 场景二：多权限与单权限申请封装
-// =====================================================================
-
+/**
+ * 注册 [ActivityResultContracts.RequestMultiplePermissions] 启动器（Activity 重载）。
+ *
+ * @return 用于批量申请权限并接收 `Map<permission, granted>` 的 [ResultCallbackLauncher]
+ */
 fun ComponentActivity.registerMultiplePermissionsLauncher() = registerResultLauncher(ActivityResultContracts.RequestMultiplePermissions())
+
+/**
+ * 注册 [ActivityResultContracts.RequestMultiplePermissions] 启动器（Fragment 重载）。
+ *
+ * @return 用于批量申请权限并接收 `Map<permission, granted>` 的 [ResultCallbackLauncher]
+ */
 fun Fragment.registerMultiplePermissionsLauncher() = registerResultLauncher(ActivityResultContracts.RequestMultiplePermissions())
 
 /**
- * 权限快捷申请扩展
- * @param permissions 要申请的权限列表（可变参数，直接逗号隔开）
- * @param onResult 经过平铺解析的极简结果闭包
+ * 批量申请权限并以平铺结构返回结果。
+ *
+ * @param permissions 要申请的权限列表（可变参数）
+ * @param onResult 申请结果回调：
+ * - `allGranted`：所有权限是否全部授权
+ * - `grantedList`：被授权的权限列表
+ * - `deniedList`：被拒绝的权限列表
  */
 fun ResultCallbackLauncher<Array<String>, Map<String, Boolean>>.launchPermissions(
     vararg permissions: String,
@@ -117,36 +166,88 @@ fun ResultCallbackLauncher<Array<String>, Map<String, Boolean>>.launchPermission
 }
 
 
-// =====================================================================
-// 场景三：多媒体与相机
-// =====================================================================
-
+/**
+ * 注册 [ActivityResultContracts.TakePicturePreview] 启动器（Activity 重载）。
+ *
+ * @return 用于拍照并接收 Bitmap 缩略图的 [ResultCallbackLauncher]
+ */
 fun ComponentActivity.registerTakePicturePreviewLauncher() = registerResultLauncher(ActivityResultContracts.TakePicturePreview())
+
+/**
+ * 注册 [ActivityResultContracts.TakePicturePreview] 启动器（Fragment 重载）。
+ *
+ * @return 用于拍照并接收 Bitmap 缩略图的 [ResultCallbackLauncher]
+ */
 fun Fragment.registerTakePicturePreviewLauncher() = registerResultLauncher(ActivityResultContracts.TakePicturePreview())
 
+/**
+ * 注册 [ActivityResultContracts.TakePicture] 启动器（Activity 重载）。
+ *
+ * @return 用于拍照并接收是否成功的 [ResultCallbackLauncher]（需要自行提供输出 Uri）
+ */
 fun ComponentActivity.registerTakePictureLauncher() = registerResultLauncher(ActivityResultContracts.TakePicture())
+
+/**
+ * 注册 [ActivityResultContracts.TakePicture] 启动器（Fragment 重载）。
+ *
+ * @return 用于拍照并接收是否成功的 [ResultCallbackLauncher]
+ */
 fun Fragment.registerTakePictureLauncher() = registerResultLauncher(ActivityResultContracts.TakePicture())
 
 
-// =====================================================================
-// 场景四：现代相册媒体选择器 (PhotoPicker)
-// =====================================================================
-
+/**
+ * 注册 [ActivityResultContracts.PickVisualMedia] 单选启动器（Activity 重载）。
+ *
+ * @return 用于选择单张图片 / 视频并返回 Uri 的 [ResultCallbackLauncher]
+ */
 fun ComponentActivity.registerPhotoPickerLauncher() = registerResultLauncher(ActivityResultContracts.PickVisualMedia())
+
+/**
+ * 注册 [ActivityResultContracts.PickVisualMedia] 单选启动器（Fragment 重载）。
+ *
+ * @return 用于选择单张图片 / 视频并返回 Uri 的 [ResultCallbackLauncher]
+ */
 fun Fragment.registerPhotoPickerLauncher() = registerResultLauncher(ActivityResultContracts.PickVisualMedia())
 
+/**
+ * 启动 PhotoPicker 仅选择图片。
+ *
+ * @param onResult 结果回调，返回选中图片的 Uri（未选择时为 null）
+ */
 fun ResultCallbackLauncher<PickVisualMediaRequest, Uri?>.launchImageOnly(onResult: (Uri?) -> Unit) {
     this.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly), onResult)
 }
 
+/**
+ * 启动 PhotoPicker 仅选择视频。
+ *
+ * @param onResult 结果回调，返回选中视频的 Uri（未选择时为 null）
+ */
 fun ResultCallbackLauncher<PickVisualMediaRequest, Uri?>.launchVideoOnly(onResult: (Uri?) -> Unit) {
     this.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly), onResult)
 }
 
+/**
+ * 注册 [ActivityResultContracts.PickMultipleVisualMedia] 多选启动器（Activity 重载）。
+ *
+ * @param maxItems 最大可选项数，默认 9
+ * @return 用于多选图片 / 视频并返回 Uri 列表的 [ResultCallbackLauncher]
+ */
 fun ComponentActivity.registerMultiplePhotoPickerLauncher(maxItems: Int = 9) = registerResultLauncher(ActivityResultContracts.PickMultipleVisualMedia(maxItems))
-fun Fragment.registerMultiplePhotoPickerLauncher(maxItems: Int = 9,) = registerResultLauncher(ActivityResultContracts.PickMultipleVisualMedia(maxItems))
 
+/**
+ * 注册 [ActivityResultContracts.PickMultipleVisualMedia] 多选启动器（Fragment 重载）。
+ *
+ * @param maxItems 最大可选项数，默认 9
+ * @return 用于多选图片 / 视频并返回 Uri 列表的 [ResultCallbackLauncher]
+ */
+fun Fragment.registerMultiplePhotoPickerLauncher(maxItems: Int = 9) = registerResultLauncher(ActivityResultContracts.PickMultipleVisualMedia(maxItems))
+
+/**
+ * 启动 PhotoPicker 多选图片与视频。
+ *
+ * @param onResult 结果回调，返回选中资源的 Uri 列表
+ */
 fun ResultCallbackLauncher<PickVisualMediaRequest, List<Uri>>.launchImagesAndVideos(onResult: (List<Uri>) -> Unit) {
     this.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo), onResult)
 }
-

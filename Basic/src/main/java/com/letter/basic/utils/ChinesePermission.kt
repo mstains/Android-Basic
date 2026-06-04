@@ -1,13 +1,19 @@
 package com.letter.basic.utils
 
 /**
- * Android 权限中文名对照表
+ * Android 权限常量与其中文名称的对照枚举。
+ *
+ * 业务层可通过 [chineseNameOf] / [of] / [allMap] 在权限字符串与中文名之间转换，
+ * 用于权限申请场景的用户提示。
+ *
+ * @property permission 对应的 Android Manifest 权限常量字符串
+ * @property chineseName 该权限的中文友好名（用于 UI 展示）
  */
 enum class ChinesePermission(
     val permission: String, val chineseName: String
 ) {
 
-    // ==================== 危险权限 - 日历 ====================
+    // 危险权限 - 日历
     READ_CALENDAR(
         android.Manifest.permission.READ_CALENDAR, "读取日程"
     ),
@@ -15,12 +21,12 @@ enum class ChinesePermission(
         android.Manifest.permission.WRITE_CALENDAR, "写入日程"
     ),
 
-    // ==================== 危险权限 - 相机 ====================
+    // 危险权限 - 相机
     CAMERA(
         android.Manifest.permission.CAMERA, "相机"
     ),
 
-    // ==================== 危险权限 - 联系人 ====================
+    // 危险权限 - 联系人
     READ_CONTACTS(
         android.Manifest.permission.READ_CONTACTS, "读取联系人"
     ),
@@ -31,7 +37,7 @@ enum class ChinesePermission(
         android.Manifest.permission.GET_ACCOUNTS, "获取账户"
     ),
 
-    // ==================== 危险权限 - 位置 ====================
+    // 危险权限 - 位置
     ACCESS_FINE_LOCATION(
         android.Manifest.permission.ACCESS_FINE_LOCATION, "精确位置（GPS）"
     ),
@@ -39,12 +45,12 @@ enum class ChinesePermission(
         android.Manifest.permission.ACCESS_COARSE_LOCATION, "粗略位置（网络）"
     ),
 
-    // ==================== 危险权限 - 麦克风 ====================
+    // 危险权限 - 麦克风
     RECORD_AUDIO(
         android.Manifest.permission.RECORD_AUDIO, "录音"
     ),
 
-    // ==================== 危险权限 - 电话 ====================
+    // 危险权限 - 电话
     READ_PHONE_STATE(
         android.Manifest.permission.READ_PHONE_STATE, "读取电话状态"
     ),
@@ -67,12 +73,12 @@ enum class ChinesePermission(
         android.Manifest.permission.PROCESS_OUTGOING_CALLS, "处理拨出电话"
     ),
 
-    // ==================== 危险权限 - 传感器 ====================
+    // 危险权限 - 传感器
     BODY_SENSORS(
         android.Manifest.permission.BODY_SENSORS, "身体传感器（心率等）"
     ),
 
-    // ==================== 危险权限 - 短信 ====================
+    // 危险权限 - 短信
     SEND_SMS(
         android.Manifest.permission.SEND_SMS, "发送短信"
     ),
@@ -89,7 +95,7 @@ enum class ChinesePermission(
         android.Manifest.permission.RECEIVE_MMS, "接收彩信"
     ),
 
-    // ==================== 危险权限 - 存储 ====================
+    // 危险权限 - 存储
     READ_EXTERNAL_STORAGE(
         android.Manifest.permission.READ_EXTERNAL_STORAGE, "读取外部存储"
     ),
@@ -97,7 +103,7 @@ enum class ChinesePermission(
         android.Manifest.permission.WRITE_EXTERNAL_STORAGE, "写入外部存储"
     ),
 
-    // ==================== 普通权限 - 网络 ====================
+    // 普通权限 - 网络
     INTERNET(
         android.Manifest.permission.INTERNET, "访问网络"
     ),
@@ -114,7 +120,7 @@ enum class ChinesePermission(
         android.Manifest.permission.CHANGE_NETWORK_STATE, "改变网络状态"
     ),
 
-    // ==================== 普通权限 - 蓝牙 ====================
+    // 普通权限 - 蓝牙
     BLUETOOTH(
         android.Manifest.permission.BLUETOOTH, "使用蓝牙"
     ),
@@ -122,12 +128,12 @@ enum class ChinesePermission(
         android.Manifest.permission.BLUETOOTH_ADMIN, "蓝牙管理"
     ),
 
-    // ==================== 普通权限 - NFC ====================
+    // 普通权限 - NFC
     NFC(
         android.Manifest.permission.NFC, "NFC通讯"
     ),
 
-    // ==================== 普通权限 - 设备控制 ====================
+    // 普通权限 - 设备控制
     VIBRATE(
         android.Manifest.permission.VIBRATE, "使用振动"
     ),
@@ -153,7 +159,7 @@ enum class ChinesePermission(
         android.Manifest.permission.GET_TASKS, "获取任务信息"
     ),
 
-    // ==================== 普通权限 - 系统设置 ====================
+    // 普通权限 - 系统设置
     WRITE_SETTINGS(
         android.Manifest.permission.WRITE_SETTINGS, "读写系统设置"
     ),
@@ -170,7 +176,7 @@ enum class ChinesePermission(
         android.Manifest.permission.MODIFY_AUDIO_SETTINGS, "修改声音设置"
     ),
 
-    // ==================== 普通权限 - 通知 ====================
+    // 普通权限 - 通知
     ACCESS_NOTIFICATION_POLICY(
         android.Manifest.permission.ACCESS_NOTIFICATION_POLICY, "访问通知策略"
     ),
@@ -178,7 +184,7 @@ enum class ChinesePermission(
         "android.permission.POST_NOTIFICATIONS", "发送通知"
     ),
 
-    // ==================== 特殊权限 - 悬浮窗 & 安装 ====================
+    // 特殊权限 - 悬浮窗 & 安装
     SYSTEM_ALERT_WINDOW(
         android.Manifest.permission.SYSTEM_ALERT_WINDOW, "悬浮窗"
     ),
@@ -186,7 +192,7 @@ enum class ChinesePermission(
         android.Manifest.permission.REQUEST_INSTALL_PACKAGES, "安装未知来源应用"
     ),
 
-    // ==================== 特殊权限 - 后台 & 电池 ====================
+    // 特殊权限 - 后台 & 电池
     REQUEST_IGNORE_BATTERY_OPTIMIZATIONS(
         "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS", "忽略电池优化"
     ),
@@ -194,7 +200,7 @@ enum class ChinesePermission(
         android.Manifest.permission.KILL_BACKGROUND_PROCESSES, "结束后台进程"
     ),
 
-    // ==================== Android 12 蓝牙新权限 ====================
+    // Android 12 蓝牙新权限
     BLUETOOTH_CONNECT(
         "android.permission.BLUETOOTH_CONNECT", "蓝牙连接"
     ),
@@ -202,12 +208,12 @@ enum class ChinesePermission(
         "android.permission.BLUETOOTH_SCAN", "蓝牙扫描"
     ),
 
-    // ==================== Android 10 后台位置权限 ====================
+    // Android 10 后台位置权限
     ACCESS_BACKGROUND_LOCATION(
         "android.permission.ACCESS_BACKGROUND_LOCATION", "后台定位"
     ),
 
-    // ==================== Android 13 媒体权限 ====================
+    // Android 13 媒体权限
     READ_MEDIA_IMAGES(
         "android.permission.READ_MEDIA_IMAGES", "读取图片"
     ),
@@ -218,7 +224,7 @@ enum class ChinesePermission(
         "android.permission.READ_MEDIA_AUDIO", "读取音频"
     ),
 
-    // ==================== 其他 ====================
+    // 其他
     USE_FINGERPRINT(
         android.Manifest.permission.USE_FINGERPRINT, "使用指纹"
     ),
@@ -236,14 +242,31 @@ enum class ChinesePermission(
     ), ;
 
     companion object {
+        /**
+         * 根据权限字符串查询中文名。
+         *
+         * @param permission Android Manifest 权限常量
+         * @return 对应中文名，未找到时返回 null
+         */
         @JvmStatic
         fun chineseNameOf(permission: String): String? =
             entries.find { it.permission == permission }?.chineseName
 
+        /**
+         * 根据权限字符串查询枚举项。
+         *
+         * @param permission Android Manifest 权限常量
+         * @return 对应枚举项，未找到时返回 null
+         */
         @JvmStatic
         fun of(permission: String): ChinesePermission? =
             entries.find { it.permission == permission }
 
+        /**
+         * 全量权限 → 中文名映射表。
+         *
+         * @return 不可变 Map，键为权限字符串，值为中文名
+         */
         @JvmStatic
         val allMap: Map<String, String>
             get() = entries.associate { it.permission to it.chineseName }
@@ -251,15 +274,26 @@ enum class ChinesePermission(
 }
 
 /**
- * 将权限字符串转换为中文名
- * 如果找不到对应记录，返回原字符串
+ * 将单个权限字符串转换为中文名。
+ *
+ * @receiver 权限字符串（如 `android.permission.CAMERA`）
+ * @return 对应中文名；未找到时返回原字符串本身，避免上层处理 null
  */
 fun String.toPermissionChineseName(): String = ChinesePermission.chineseNameOf(this) ?: this
 
 /**
- * 批量获取权限中文名
+ * 将多个权限字符串批量转换为中文名列表。
+ *
+ * @receiver 权限字符串数组
+ * @return 按输入顺序的中文名列表，未匹配的项保留原字符串
  */
 fun Array<out String>.toPermissionChineseNames(): List<String> =
     map { it.toPermissionChineseName() }
 
+/**
+ * 将多个权限字符串批量转换为中文名列表（List 重载）。
+ *
+ * @receiver 权限字符串列表
+ * @return 按输入顺序的中文名列表，未匹配的项保留原字符串
+ */
 fun List<out String>.toPermissionChineseNames(): List<String> = map { it.toPermissionChineseName() }

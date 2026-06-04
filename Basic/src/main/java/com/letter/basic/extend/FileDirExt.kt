@@ -12,14 +12,23 @@ import java.lang.reflect.InvocationTargetException
 
 
 /**
- * （1）内部存储
- * （2）获取内部存储中当前应用程序下的files目录的路径
- * （其路径为/data/data/com.xxx.ooo.filetestdemo/files有些手机的路径为/data/user/0/com.xxx.ooo.filetestdemo/files）
- * （3）个别设备虽然获取内部存储的路径貌似不同，其实最终都是映射在同一个路径下。比如/data/data/对应的映射路径是data/user/0/
- * （4）不需要额外的权限来读取或在返回的路径下写入文件
- * （5）当应用被卸载时，文件数据被清除
- * （6）一般情况下，非root手机不能访问
- * @return
+ * Android 内部 / 外部存储目录查询扩展。
+ *
+ * 把 `Context` 自带的 `getFilesDir` / `getCacheDir` / `getExternalFilesDir` 等 API
+ * 统一暴露为 String 类型路径，并补齐多个隐藏目录的便捷方法。
+ *
+ * 注意：Android 10+ 受 Scoped Storage 限制，部分外部存储方法在主存储中返回的路径不可直接访问，
+ * 如需跨应用文件操作请使用 [MediaStore] / [Storage Access Framework]。
+ */
+
+/**
+ * 获取当前应用的内部存储 `files` 目录绝对路径。
+ *
+ * 路径格式：`/data/data/<packageName>/files`（部分设备映射为 `/data/user/0/<packageName>/files`）。
+ * 应用卸载时目录会被清除；非 root 设备其他应用无法访问。
+ *
+ * @receiver 调用方 Context
+ * @return files 目录绝对路径
  */
 fun Context.getFilesDir(): String {
     val dir: File = filesDir
@@ -27,15 +36,13 @@ fun Context.getFilesDir(): String {
 }
 
 /**
- * （1）内部存储
- * （2）获取内部存储中当前应用程序下的cache目录的路径
- * （其路径为/data/data/com.xxx.ooo.filetestdemo/cache有些手机的路径为/data/user/0/com.xxx.ooo.filetestdemo/cache）
- * （3）个别设备虽然获取内部存储的路径貌似不同，其实最终都是映射在同一个路径下。比如/data/data/对应的映射路径是data/user/0/
- * （4）不需要额外的权限来读取或在返回的路径下写入文件
- * （5）当该文件夹超过当前被分配的最大缓存时，系统将自动删除该目录中的文件为其他地方提供需要空间，当未超出时则不会
- * （6）当应用被卸载时，文件数据被清除
- * （7）一般情况下，非root手机不能访问
- * @return
+ * 获取当前应用的内部存储 `cache` 目录绝对路径。
+ *
+ * 路径格式：`/data/data/<packageName>/cache`。
+ * 系统在空间不足时可能自动清理；应用卸载时会被清除。
+ *
+ * @receiver 调用方 Context
+ * @return cache 目录绝对路径
  */
 fun Context.getCacheDir(): String {
     val dir: File = cacheDir
@@ -43,12 +50,13 @@ fun Context.getCacheDir(): String {
 }
 
 /**
- * （1）外部存储
- * （2）获取外部存储中当前应用程序下的cache目录的路径（/storage/emulated/0/Android/data/com.xxx.ooo.filetestdemo/cache）
- * （3）不需要额外的权限来读取或在返回的路径下写入文件
- * （4）当应用被卸载时，文件数据被清除
- * （5）一般情况下，非root手机可以访问
- * @return
+ * 获取当前应用的外部存储 `cache` 目录绝对路径。
+ *
+ * 路径格式：`/storage/emulated/0/Android/data/<packageName>/cache`。
+ * 应用卸载时会被清除；不需要额外权限；普通手机文件管理器可访问。
+ *
+ * @receiver 调用方 Context
+ * @return external cache 目录绝对路径；不可用时返回 null
  */
 fun Context.getExternalCacheDir(): String? {
     val dir = externalCacheDir
@@ -56,9 +64,12 @@ fun Context.getExternalCacheDir(): String? {
 }
 
 /**
- * （1）和getExternalCacheDir类似，getExternalCacheDirs获取所有内置存储器的cache目录的路径
- * （2）Android4.4新增接口
- * @return
+ * 获取所有外部存储设备上的 `cache` 目录列表。
+ *
+ * Android 4.4 新增接口，适用于多存储设备（如内置 + 外置 OTG）的设备。
+ *
+ * @receiver 调用方 Context
+ * @return 外部存储 cache 目录列表，元素可能为 null
  */
 fun Context.getExternalCacheDirs(): List<File?> {
     val list: MutableList<File?> = ArrayList()
@@ -67,27 +78,27 @@ fun Context.getExternalCacheDirs(): List<File?> {
 }
 
 /**
- * （1）外部存储
- * （2）获取外部存储中当前应用程序下的files目录中的type文件夹的路径（/storage/emulated/0/Android/data/com.xxx.ooo.filetestdemo/files/aa）
- * （3）不需要额外的权限来读取或在返回的路径下写入文件
- * （4）当应用被卸载时，文件数据被清除
- * （5）一般情况下，非root手机可以访问
- * @return
+ * 获取当前应用外部存储 `files` 目录下名为 `aa` 的子目录绝对路径。
+ *
+ * 路径格式：`/storage/emulated/0/Android/data/<packageName>/files/aa`。
+ * 应用卸载时会被清除；普通手机文件管理器可访问。
+ *
+ * @receiver 调用方 Context
+ * @return external files/aa 目录绝对路径；不可用时返回 null
  */
 fun Context.getExternalFilesDir(): String? {
-    //参数type就是files目录下的aa文件夹
     val dir = this.getExternalFilesDir("aa")
     return dir?.absolutePath
 }
 
 
 /**
- * （1）外部存储
- * （2）获取外部存储中当前应用程序文件夹的路径（/storage/emulated/0/Android/obb/com.xxx.ooo.filetestdemo）
- * （3）不需要额外的权限来读取或在返回的路径下写入文件
- * （4）当应用被卸载时，文件数据被清除
- * （5）一般情况下，非root手机可以访问
- * @return
+ * 获取当前应用外部存储 OBB 目录绝对路径。
+ *
+ * 路径格式：`/storage/emulated/0/Android/obb/<packageName>`，通常用于存放游戏数据包。
+ *
+ * @receiver 调用方 Context
+ * @return OBB 目录绝对路径
  */
 fun Context.getObbDir(): String {
     val dir: File = this.obbDir
@@ -95,9 +106,12 @@ fun Context.getObbDir(): String {
 }
 
 /**
- * （1）和getObbDir类似，getObbDirs获取所有内置存储器的相应目录
- * （2）Android4.4新增接口
- * @return
+ * 获取所有外部存储设备上的 OBB 目录列表。
+ *
+ * Android 4.4 新增接口。
+ *
+ * @receiver 调用方 Context
+ * @return 外部存储 OBB 目录列表
  */
 fun Context.getObbDirs(): List<File> {
     val list: MutableList<File> = ArrayList()
@@ -107,51 +121,41 @@ fun Context.getObbDirs(): List<File> {
 }
 
 /**
- * （1）内部存储
- * （2）不会自动备份到远程存储的应用程序文件的路径
- * （3）获取内部存储中当前应用程序下的no_backup目录的路径
- * （其路径为/data/data/com.xxx.ooo.filetestdemo/no_backup有些手机的路径为/data/user/0/com.xxx.ooo.filetestdemo/no_backup）
- * （4）个别设备虽然获取内部存储的路径貌似不同，其实最终都是映射在同一个路径下。比如/data/data/对应的映射路径是data/user/0/
- * （5）不需要额外的权限来读取或在返回的路径下写入文件
- * （6）当应用被卸载时，文件数据被清除
- * （7）一般情况下，非root手机不能访问
- * （8）Android 5.0新增接口，低于5.0手机不支持
- * @return
+ * 获取当前应用内部存储 `no_backup` 目录绝对路径。
+ *
+ * 路径格式：`/data/data/<packageName>/no_backup`。
+ * Android 5.0 新增接口，低于 5.0 设备返回空字符串。
+ *
+ * @receiver 调用方 Context
+ * @return no_backup 目录绝对路径；不支持时返回空字符串
  */
 fun Context.getNoBackupFilesDir(): String {
-    var dir: File? = null
-    dir = this.noBackupFilesDir
+    val dir: File? = this.noBackupFilesDir
     return if (dir == null) "" else dir.absolutePath
 }
 
 /**
- * （1）内部存储
- * （2）保存应用程序代码缓存文件的目录路径,适合在运行时存放应用产生的编译或者优化的代码。
- * （3）获取内部存储中当前应用程序下的code_cache目录的路径
- * （其路径为/data/data/com.xxx.ooo.filetestdemo/code_cache有些手机的路径为/data/user/0/com.xxx.ooo.filetestdemo/code_cache）
- * （4）个别设备虽然获取内部存储的路径貌似不同，其实最终都是映射在同一个路径下。比如/data/data/对应的映射路径是data/user/0/
- * （5）不需要额外的权限来读取或在返回的路径下写入文件
- * （6）当应用被卸载时，文件数据被清除
- * （7）一般情况下，非root手机不能访问
- * （8）Android 5.0新增接口，低于5.0手机不支持
- * @return
+ * 获取当前应用内部存储 `code_cache` 目录绝对路径。
+ *
+ * 用于运行时存放编译或优化后的代码缓存。
+ * Android 5.0 新增接口，低于 5.0 设备返回空字符串。
+ *
+ * @receiver 调用方 Context
+ * @return code_cache 目录绝对路径；不支持时返回空字符串
  */
 fun Context.getCodeCacheDir(): String {
-    var dir: File? = null
-    dir = this.codeCacheDir
+    val dir: File? = this.codeCacheDir
     return if (dir == null) "" else dir.absolutePath
 }
 
 /**
- * （1）内部存储
- * （2）获取内部存储中当前应用程序路径
- * （其路径为/data/data/com.xxx.ooo.filetestdemo有些手机的路径为/data/user/0/com.xxx.ooo.filetestdemo）
- * （3）个别设备虽然获取内部存储的路径貌似不同，其实最终都是映射在同一个路径下。比如/data/data/对应的映射路径是data/user/0/
- * （4）不需要额外的权限来读取或在返回的路径下写入文件
- * （5）当应用被卸载时，文件数据被清除
- * （6）一般情况下，非root手机不能访问
- * （7）Android 7.0新增接口，低于7.0手机不支持
- * @return
+ * 获取当前应用内部存储根目录绝对路径。
+ *
+ * 路径格式：`/data/data/<packageName>`。
+ * Android 7.0 新增接口，低于 7.0 设备返回空字符串。
+ *
+ * @receiver 调用方 Context
+ * @return 应用根目录绝对路径；不支持时返回空字符串
  */
 fun Context.getDataDir(): String {
     var dir: File? = null
@@ -162,13 +166,12 @@ fun Context.getDataDir(): String {
 }
 
 /**
- * （1）内部存储
- * （2）此上下文的主Android包的完整路径。这对应用程序通常没有用处，因为它们不应该直接访问文件系统
- * （其路径为/data/app/com.xxx.ooo.filetestdemo-1PN4Y-p3v7XA-OqXnbud8A==/base.apk)
- * （3）不需要额外的权限来读取或在返回的路径下写入文件
- * （4）当应用被卸载时，文件数据被清除
- * （5）一般情况下，非root手机不能访问
- * @return
+ * 获取当前 APK 安装包完整路径。
+ *
+ * 应用通常无需直接访问此路径。
+ *
+ * @receiver 调用方 Context
+ * @return APK 完整文件路径
  */
 fun Context.getPackageCodePath(): String {
     val dir: String = this.packageCodePath
@@ -176,8 +179,10 @@ fun Context.getPackageCodePath(): String {
 }
 
 /**
- * 和getPackageCodePath一致
- * @return
+ * 与 [getPackageCodePath] 一致，指向 APK 资源打包后的文件路径。
+ *
+ * @receiver 调用方 Context
+ * @return 资源路径字符串
  */
 fun Context.getPackageResourcePath(): String {
     val dir: String = this.packageResourcePath
@@ -185,15 +190,13 @@ fun Context.getPackageResourcePath(): String {
 }
 
 /**
- * （1）外部存储
- * （2）获取外部存储中指定文件夹的目录
- * （其路径为/storage/emulated/0/type）
- * （3）需要配置文件外部存储权限
- * <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"></uses-permission>
- * <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"></uses-permission>
- * 仅仅添加这读写权限还是不够的，还需要在应用信息中检查存储权限是否打开，如果没有打开，需要手动打开。
- * （4）当应用被卸载时，文件数据不会被清除
- * @return
+ * 获取外部存储中指定公共目录（`aaa` 子目录）的绝对路径。
+ *
+ * 需要声明 `READ_EXTERNAL_STORAGE` / `WRITE_EXTERNAL_STORAGE` 权限，
+ * 并且在系统应用信息中实际打开存储权限。应用卸载时不会被清除。
+ *
+ * @receiver 调用方 Context
+ * @return 公共目录 `aaa` 绝对路径
  */
 fun Context.getExternalStoragePublicDirectory(): String {
     val dir = Environment.getExternalStoragePublicDirectory("aaa")
@@ -201,15 +204,12 @@ fun Context.getExternalStoragePublicDirectory(): String {
 }
 
 /**
- * （1）外部存储
- * （2）获取外部存储中指定文件夹的目录
- * （其路径为/storage/emulated/0）
- * （3）需要配置文件外部存储权限
- * <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"></uses-permission>
- * <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"></uses-permission>
- * 仅仅添加这读写权限还是不够的，还需要在应用信息中检查存储权限是否打开，如果没有打开，需要手动打开。
- * （4）当应用被卸载时，文件数据不会被清除
- * @return
+ * 获取外部存储根目录绝对路径。
+ *
+ * 需要声明存储权限并在系统设置中开启。应用卸载时不会被清除。
+ *
+ * @receiver 调用方 Context
+ * @return 外部存储根目录绝对路径
  */
 fun Context.getExternalStorageDirectory(): String {
     val dir = Environment.getExternalStorageDirectory()
@@ -217,23 +217,16 @@ fun Context.getExternalStorageDirectory(): String {
 }
 
 /**
- * 获取存储状态（媒体是指外部存储，比如SD卡）
+ * 获取外部存储的当前挂载状态字符串。
  *
- * MEDIA_UNKNOWN：未知存储状态，例如路径没有由已知存储支持时
- * MEDIA_REMOVED：存储媒体被移除
- * MEDIA_UNMOUNTED：存储媒体没有挂载
- * MEDIA_CHECKING：如果媒体存在并正在检查磁盘
- * MEDIA_NOFS：不支持的文件系统
- * MEDIA_MOUNTED：媒体已经挂载，并且可读/写
- * MEDIA_MOUNTED_READ_ONLY：媒体已经挂载，只读
- * MEDIA_SHARED：在通过USB共享
- * MEDIA_BAD_REMOVAL：在没有挂载前存储媒体已经被移除
- * MEDIA_UNMOUNTABLE：存储媒体无法挂载
- * MEDIA_EJECTING：存储媒体处于被弹出的过程
+ * 常用返回值：
+ * - `MEDIA_MOUNTED`：可读写
+ * - `MEDIA_MOUNTED_READ_ONLY`：只读
+ * - `MEDIA_REMOVED` / `MEDIA_UNMOUNTED`：未挂载
+ * - `MEDIA_UNKNOWN`：状态未知
  *
- * 其中MEDIA_MOUNTED最常用，可以判断媒体是否存在，如果不存在可以将数据存储到内部存储中
- * boolean isSDCardExist = Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState());
- * @return
+ * @receiver 调用方 Context
+ * @return [Environment.getExternalStorageState] 的返回值
  */
 fun Context.getExternalStorageState(): String {
     val state = Environment.getExternalStorageState()
@@ -241,12 +234,12 @@ fun Context.getExternalStorageState(): String {
 }
 
 /**
- * （1）内部存储
- * （2）其路径为/data
- * （3）如果写文件需要data文件夹读写权限，不过即使将文件夹的文件设置成可读可写权限，Android的createNewFile方法还是报权限错误（这个问题待定吧）
- * （4）不过一般app开发不需要读写/data目录中的文件
- * （5）一般情况下，非root手机不能访问
- * @return
+ * 获取内部存储 `/data` 目录绝对路径。
+ *
+ * 非 root 设备一般应用无法直接读写。
+ *
+ * @receiver 调用方 Context
+ * @return `/data` 目录绝对路径
  */
 fun Context.getDataDirectory(): String {
     val file = Environment.getDataDirectory()
@@ -254,12 +247,12 @@ fun Context.getDataDirectory(): String {
 }
 
 /**
- * （1）内部存储
- * （2）其路径为/data/cache
- * （3）如果写文件需要data文件夹读写权限，不过即使将文件夹的文件设置成可读可写权限，Android的createNewFile方法还是报权限错误（这个问题待定吧）
- * （4）不过一般app开发不需要读写/data目录中的文件
- * （5）一般情况下，非root手机不能访问
- * @return
+ * 获取系统下载缓存 `/data/cache` 目录绝对路径。
+ *
+ * 非 root 设备一般应用无法直接读写。
+ *
+ * @receiver 调用方 Context
+ * @return 下载缓存目录绝对路径
  */
 fun Context.getDownloadCacheDirectory(): String {
     val file = Environment.getDownloadCacheDirectory()
@@ -268,11 +261,12 @@ fun Context.getDownloadCacheDirectory(): String {
 
 
 /**
- * （1）获取系统目录
- * （2）其路径为/system
- * （3）该文件夹只读权限，不可写
- * （4）一般情况下，非root手机不能访问
- * @return
+ * 获取系统根目录 `/system` 绝对路径。
+ *
+ * 只读权限，不可写。
+ *
+ * @receiver 调用方 Context
+ * @return 系统根目录绝对路径
  */
 fun Context.getRootDirectory(): String {
     val file = Environment.getRootDirectory()
@@ -280,9 +274,13 @@ fun Context.getRootDirectory(): String {
 }
 
 /**
- * 获取所有的外部存储路径
- * /storage/emulated/0、/storage/usbotg
- * @return
+ * 获取所有外部存储路径（如内置 + USB OTG）。
+ *
+ * 通过反射调用 [StorageManager.getVolumePaths]，属于隐藏 API，
+ * 在部分定制 ROM 上可能失败。
+ *
+ * @receiver 调用方 Context
+ * @return 外部存储路径数组；反射失败时返回空数组
  */
 fun Context.getStoragePaths(): Array<String?>? {
     var paths = arrayOfNulls<String>(0)
@@ -301,11 +299,18 @@ fun Context.getStoragePaths(): Array<String?>? {
 }
 
 /**
- * @param context 上下文
- * @param outFilePath 输出文件路径,因为android10的关系,所以该路径只可为应用内沙盒路径
+ * 将 [Uri] 指向的内容复制到 [outFilePath] 指定的本地文件。
+ *
+ * 受 Android 10 Scoped Storage 限制，[outFilePath] 必须位于应用沙盒内
+ * （如 `Context.getExternalFilesDir` / `cacheDir`），否则 `FileOutputStream` 构造会失败。
+ *
+ * @receiver 源 Uri
+ * @param context 用于打开文件描述符的上下文
+ * @param outFilePath 输出文件绝对路径
+ * @return 写入完成的目标 [File] 实例
  */
 fun Uri.copyAndConvert(context: Context, outFilePath: String): File {
-    val pfd = context.contentResolver.openFileDescriptor(this, "r")//r代表读操作
+    val pfd = context.contentResolver.openFileDescriptor(this, "r")
     FileInputStream(pfd?.fileDescriptor).use { fis ->
         FileOutputStream(File(outFilePath)).use { fos ->
             fis.copyTo(fos)
