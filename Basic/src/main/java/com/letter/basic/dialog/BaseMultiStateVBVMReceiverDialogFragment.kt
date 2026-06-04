@@ -10,15 +10,15 @@ import com.letter.basic.receiver.ReceiverImpl
 
 
 /**
- * @Package:        com.letter.basic.dialog
- * @ClassName:      BaseVBVMReceiverDialogFragment
- * @Description:    DialogFragment的基类
- * @Author:         Boqing.wu
- * @CreateDate:     2024/12/17 14:52
- * @UpdateUser:     更新者：
- * @UpdateDate:     2024/12/17 14:52
- * @UpdateRemark:   更新说明：
- * @Version:        1.0
+ * 支持 ViewBinding + ViewModel + 广播监听的 DialogFragment 基类。
+ *
+ * 组合 [BaseMultiStateVBVMDialogFragment] 与 [ReceiverImpl] 能力，
+ * 适用于既需要数据请求又需要接收广播的弹窗场景。
+ *
+ * @param VB ViewBinding 类型
+ * @param VM ViewModel 类型
+ * @author Boqing.wu
+ * @since 2026-06-04
  */
 abstract class BaseMultiStateVBVMReceiverDialogFragment<VB : ViewBinding, VM : ViewModel> :
     BaseMultiStateVBVMDialogFragment<VB, VM>(), ReceiverImpl {
@@ -36,35 +36,49 @@ abstract class BaseMultiStateVBVMReceiverDialogFragment<VB : ViewBinding, VM : V
 
 
     /**
-     * 初始化广播
+     * 初始化广播监听。
+     *
+     * 子类重写，在此处调用 [registerAction] 注册所需 Action。
+     * 基类在 onActivityCreated 中 super.onActivityCreated 之后调用。
      */
     open fun initBroadcast() {
 
     }
 
     /**
-     * 广播接收的回掉
+     * 广播接收回调。
+     *
+     * 子类重写以处理广播消息。
+     *
+     * @param context 广播上下文，可为 null
+     * @param intent 接收到的广播 Intent，可为 null
      */
     override fun onReceive(context: Context?, intent: Intent?) {
 
     }
 
     /**
-     * 注册广播
+     * 注册指定 Action 的广播。
+     *
+     * @param action 要监听的广播 Action 字符串
      */
     override fun registerAction(action: String) {
         mReceiverManager.registerAction(action)
     }
 
     /**
-     * 注销单个广播
+     * 注销指定 Action 的广播。
+     *
+     * @param action 要注销的广播 Action 字符串
      */
     override fun unRegisterAction(action: String) {
         mReceiverManager.unRegisterAction(action)
     }
 
     /**
-     * 注销所有的广播
+     * 注销当前 DialogFragment 注册的全部广播。
+     *
+     * onDestroy 时自动调用，避免内存泄漏。
      */
     override fun unRegisterAllAction() {
         mReceiverManager.unRegisterAllAction()

@@ -18,22 +18,23 @@ import androidx.viewbinding.ViewBinding
 import com.letter.basic.dialog.builder.WindowBuilder
 
 /**
- * @Package:        BaseVBDialogFragment
- * @ClassName:      BaseDialogVBFragment
- * @Description:    DialogFragment的基类
- * @Author:         Boqing.wu
- * @CreateDate:     2022/2/10 16:56
- * @UpdateUser:     更新者：
- * @UpdateDate:     2022/2/10 16:56
- * @UpdateRemark:   更新说明：
- * @Version:        1.0
+ * 支持 ViewBinding 的通用 DialogFragment 基类。
+ *
+ * 提供窗口参数配置（[getWindowBuild]）、生命周期感知与 ViewBinding 懒加载能力。
+ * 子类按需重写 [initIntent] / [initBundle] / [initBase] / [initView] / [initData] / [initListener]。
+ *
+ * @param VB ViewBinding 类型
+ * @author Boqing.wu
+ * @since 2026-06-04
  */
 abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment(), LifecycleObserver {
 
 
     /**
-     * viewBinding应用对象
-     * */
+     * 当前 Dialog 的 ViewBinding 实例。
+     *
+     * 在 onCreateView 中由 [createViewBinding] 赋值，Fragment 重建时由系统管理生命周期。
+     */
     protected var viewBinding: VB? = null
 
     private val mDisplayMetrics: DisplayMetrics? by lazy {
@@ -50,7 +51,9 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
     }
 
     /**
-     * BaseDialogFragment内置的初始化
+     * 内置初始化流程。
+     *
+     * 按 initIntent → initBundle → initBase 顺序调度，由基类在 onCreate 末尾调用。
      */
     private fun init() {
         activity?.apply {
@@ -63,21 +66,31 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
     }
 
     /**
-     * 获取Activity中Intent传递的参数
+     * 获取 Activity 启动 Intent 中传递的参数。
+     *
+     * 子类重写以解析宿主 Activity 传递过来的 Intent 数据。
+     *
+     * @param intent 启动当前 Dialog 的宿主 Activity 的 Intent
      */
     open fun initIntent(intent: Intent) {
 
     }
 
     /**
-     * 获取Bundle中传递的参数
+     * 获取 Bundle 中传递的参数。
+     *
+     * 子类重写以解析 show() 时传入的 arguments 数据。
+     *
+     * @param bundle 调用 setArguments(Bundle) 时传入的参数 Bundle
      */
     open fun initBundle(bundle: Bundle) {
 
     }
 
     /**
-     * 加载必要初始化对象方法
+     * 加载必要初始化对象。
+     *
+     * 子类重写以完成 ViewBinding 创建之前必须就绪的初始化（如构造数据对象）。
      */
     open fun initBase() {
 
@@ -93,7 +106,13 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
 
 
     /**
-     * 配置Dialog的Window参数
+     * 配置 Dialog 的 Window 参数。
+     *
+     * 子类重写以自定义窗口尺寸、位置、内外边距、是否可取消等。
+     * 默认实现：宽度撑满、高度自适应、底部对齐、点击外部不消失、可通过返回键取消。
+     *
+     * @param dm 宿主 Activity 的 DisplayMetrics，可为 null（Dialog 尚未 attach 时）
+     * @return WindowBuilder 实例，包含所有窗口配置
      */
     open fun getWindowBuild(dm: DisplayMetrics?): WindowBuilder {
         val builder = WindowBuilder()
@@ -109,7 +128,9 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
     }
 
     /**
-     * 加载窗口参数
+     * 加载窗口参数。
+     *
+     * 把 [getWindowBuild] 返回的配置实际应用到当前 Dialog 的 Window 上。
      */
     protected open fun initWindow() {
 
@@ -143,19 +164,28 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
     }
 
 
+    /**
+     * 初始化视图。
+     *
+     * 子类重写以配置视图属性（文本、图片、可见性等）。
+     */
     open fun initView() {
 
     }
 
     /**
-     * 加载Data方法
+     * 加载数据。
+     *
+     * 子类重写以加载页面所需的初始数据。
      */
     open fun initData() {
 
     }
 
     /**
-     * 加载监听Listener
+     * 加载监听器。
+     *
+     * 子类重写以注册 UI 事件监听（点击、文本变化等）。
      */
     open fun initListener() {
 
@@ -169,6 +199,11 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
         }
     }
 
+    /**
+     * 使用类名作为默认 tag 显示 Dialog。
+     *
+     * @param transaction FragmentManager 实例，用于调度 show
+     */
     fun show(transaction: FragmentManager) {
         try {
             this.show(transaction, this::class.java.simpleName)
@@ -180,6 +215,11 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
     }
 
 
+    /**
+     * 判断 Dialog 是否正在显示。
+     *
+     * @return true 表示 Dialog 处于可见状态，false 表示未显示或 Dialog 对象为 null
+     */
     fun isShowing(): Boolean {
         dialog?.let {
             return it.isShowing
@@ -191,7 +231,11 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
 
 
     /**
-     * 创建viewBinding
-     * */
+     * 创建 ViewBinding 实例。
+     *
+     * @param inflater LayoutInflater 实例
+     * @param container 父容器 ViewGroup，可为 null
+     * @return 子类持有的 ViewBinding 实例
+     */
     abstract fun createViewBinding(inflater: LayoutInflater, container: ViewGroup?): VB
 }

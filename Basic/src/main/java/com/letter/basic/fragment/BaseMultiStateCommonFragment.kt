@@ -9,15 +9,12 @@ import androidx.lifecycle.LifecycleObserver
 
 
 /**
- * @Package:        com.energy.sources.base.fragment
- * @ClassName:      BaseCommonFragment
- * @Description:    Fragment基类
- * @Author:         Boqing.wu
- * @CreateDate:     2022/11/18 12:36
- * @UpdateUser:     更新者：
- * @UpdateDate:     2022/11/18 12:36
- * @UpdateRemark:   更新说明：
- * @Version:        1.0
+ * 通用 Fragment 基类。
+ *
+ * 把 onCreateView 模板方法下沉到 [createView]，子类专注于返回 View 实例。
+ *
+ * @author Boqing.wu
+ * @since 2026-06-04
  */
 abstract class BaseMultiStateCommonFragment : Fragment(), LifecycleObserver {
 
@@ -30,8 +27,15 @@ abstract class BaseMultiStateCommonFragment : Fragment(), LifecycleObserver {
 
 
     /**
-     * 封装Fragment的onCreateView方法，把参数返回出去
-     * */
+     * 创建 Fragment 根视图。
+     *
+     * 子类重写以返回具体 View 实例，基类在 onCreateView 中调用。
+     *
+     * @param inflater 用于加载 XML 布局的 LayoutInflater
+     * @param container 父容器 ViewGroup，可为 null
+     * @param savedInstanceState 恢复状态用的 Bundle，可为 null
+     * @return Fragment 根 View 实例
+     */
     abstract fun createView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View

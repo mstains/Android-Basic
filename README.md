@@ -2,6 +2,8 @@
 
 Android 基础依赖库，基于 MVVM 架构封装 Activity、Fragment、DialogFragment 基类及常用扩展函数，支持快速集成 ViewBinding、ViewModel、本地广播。
 
+> 开发者文档：[AGENTS.md](AGENTS.md) · 注释规范见 opencode 全局 skill `android-comment-style`
+
 ## 添加依赖
 
 **Step 1** — 在项目根目录 `settings.gradle` 中添加 JitPack 仓库：

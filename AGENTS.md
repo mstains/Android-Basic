@@ -51,3 +51,18 @@
 ## 项目规则
 - 扩展函数统一放在 `Basic/src/main/java/com/letter/basic/extend/`
 - 使用 `./gradlew :Basic:assembleRelease` 构建库模块发布到 JitPack
+
+## 注释规范
+
+本项目遵循通用 Android 注释规范，正文位于 opencode 全局 skill：
+
+`~/.config/opencode/skill/android-comment-style/SKILL.md`
+
+**速记**：
+
+- 公共 API（`public class / fun / val`）**必须**有 KDoc / Javadoc（用途、`@param`、`@return`、`@throws`）
+- 复杂逻辑（核心算法、关键分支、魔法值）**应当**有行内注释，统一放在语句**上方**
+- 注释语言：中文为主，技术术语（Coroutine / StateFlow / Lifecycle 等）保留英文
+- `@param` / `@return` / `@throws` 说明**全部中文**，参数名与类型保留英文
+- TODO 格式：`// TODO(作者/issue号): 原因 → 计划方案`，禁止空 TODO
+- **禁止**应付式注释（"新增"、"初始化"、"这段代码很重要"等词不表意的注释），反例见规范第 5 节

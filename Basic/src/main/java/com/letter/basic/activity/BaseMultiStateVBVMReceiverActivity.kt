@@ -7,15 +7,15 @@ import com.letter.basic.manager.ReceiverManager
 import com.letter.basic.receiver.ReceiverImpl
 
 /**
- * @Package:        com.energy.sources.base.activity
- * @ClassName:      BaseMultiStateVBVMReceiverActivity
- * @Description:    带广播监听的activity基类
- * @Author:         Boqing.wu
- * @CreateDate:     2024/12/31 上午11:18
- * @UpdateUser:     更新者：
- * @UpdateDate:     2024/12/31 上午11:18
- * @UpdateRemark:   更新说明：
- * @Version:        1.0
+ * 支持 ViewBinding + ViewModel + 广播监听的 Activity 基类。
+ *
+ * 组合 [BaseMultiStateVBVMActivity] 与 [ReceiverImpl] 能力，
+ * 适用于既需要网络请求又需要接收广播的页面。
+ *
+ * @param VB ViewBinding 类型
+ * @param VM ViewModel 类型
+ * @author Boqing.wu
+ * @since 2026-06-04
  */
 abstract class BaseMultiStateVBVMReceiverActivity<VB : ViewBinding, VM : ViewModel> :
     BaseMultiStateVBVMActivity<VB, VM>(), ReceiverImpl {
@@ -30,27 +30,36 @@ abstract class BaseMultiStateVBVMReceiverActivity<VB : ViewBinding, VM : ViewMod
     }
 
     /**
-     * 初始化广播监听
-     * */
+     * 初始化广播监听。
+     *
+     * 由子类重写，在此处调用 [registerAction] 注册所需 Action。
+     * 基类在 onCreate 中 super.onCreate 之后立即调用。
+     */
     abstract fun initBroadcast()
 
 
     /**
-     * 注册广播
+     * 注册指定 Action 的广播。
+     *
+     * @param action 要监听的广播 Action 字符串
      */
     override fun registerAction(action: String) {
         mReceiverManager.registerAction(action)
     }
 
     /**
-     * 注销单个广播
+     * 注销指定 Action 的广播。
+     *
+     * @param action 要注销的广播 Action 字符串
      */
     override fun unRegisterAction(action: String) {
         mReceiverManager.unRegisterAction(action)
     }
 
     /**
-     * 注销所有的广播
+     * 注销当前 Activity 注册的全部广播。
+     *
+     * onDestroy 时自动调用，避免内存泄漏。
      */
     override fun unRegisterAllAction() {
         mReceiverManager.unRegisterAllAction()
@@ -61,8 +70,4 @@ abstract class BaseMultiStateVBVMReceiverActivity<VB : ViewBinding, VM : ViewMod
         super.onDestroy()
         unRegisterAllAction()
     }
-
-
-
-
 }
