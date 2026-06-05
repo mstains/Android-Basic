@@ -1,68 +1,50 @@
-# AGENTS.md - Android-Basic 项目指南
+# AGENTS.md — Android-Basic
 
-## Additional Rules
+## 基础规则
 - 始终使用简体中文回答
-- Always use Chinese comments
-- Prefer async/await over callbacks
-- Error messages should be user-friendly
+- 公共 API 与行内注释使用中文（KDoc 规范见 `~/.config/opencode/skill/android-comment-style`）
 
-## 项目结构
-
-- `app/` - Android 应用模块
-- `Basic/` - Android 库模块，发布到 JitPack (com.github.mstains:Android-Basic:1.1)
+## 模块
+- `app/` — 演示模块，依赖 `:Basic`
+- `Basic/` — 库模块，发布到 JitPack（坐标 `com.github.mstains:android-basic:1.0`，见 `Basic/build.gradle:8-13`）
+- 两者共享 `namespace 'com.letter.basic'`（历史原因，勿随意改动）
+- 扩展函数统一放在 `Basic/src/main/java/com/letter/basic/extend/`
 
 ## 构建命令
+- `./gradlew assembleDebug` / `assembleRelease`
+- `./gradlew :Basic:assembleRelease`（产出 AAR + sources jar，供 JitPack 发布）
+- `./gradlew test` — 仓库内只有占位测试，等同空跑；提交前请用本地编译验证
+- `./gradlew clean`
 
-```bash
-# 构建 Debug APK
-./gradlew assembleDebug
+## 工具链
+- Gradle 8.10.2 / AGP 8.8.2 / Kotlin 1.9.24 / compileSdk 35 / minSdk 23
+- JVM target：`app` 用 Java 11、`Basic` 用 Java 21（两模块不一致是有意的）
+- 仓库镜像：腾讯云 + 阿里云（`settings.gradle:11-16, 28-33`）
 
-# 构建 Release APK
-./gradlew assembleRelease
+## 依赖管理
+- 所有版本号在 `gradle/libs.versions.toml` 集中维护
+- 子模块 `build.gradle` 通过 `libs.xxx` 引用，禁止直接写坐标
 
-# 构建库模块 AAR
-./gradlew :Basic:assembleRelease
+## 代码层硬规则
+- 继承 `BaseMultiStateVBActivity` 时，`onCreate` 固定顺序为
+  `initStatusBar → initView → initData → initListener`
+  （见 `Basic/.../BaseMultiStateVBActivity.kt:32-35`），子类不要重复调用 super
+- `IntentExt.kt` 中 `baseStartActivity*` / `baseStartActivityForResult*` 已 `@Deprecated`，
+  新代码改用 `ResultCallbackLauncher` 系列（`Basic/.../ResultCallbackLauncher.kt`）
+- `BaseMultiState*` 自动入栈 `ActivityController`；若需全局 `Application`，
+  在自家 `Application.onCreate()` 中调用 `ActivityController.setApplication(this)`
+- `BroadcastUtil` 基于已废弃的 `LocalBroadcastManager`，仅作兼容保留
 
-# 运行测试
-./gradlew test
+## 新增能力的归位
+- 权限 / 相册 / 拍照等 `ActivityResultLauncher` → `ResultCallbackLauncher.kt`
+- 日期 `DateTimeFormatter` 模板 → `DateManager.kt`
+- 权限中文名 → `ChinesePermission` 枚举 + `toPermissionChineseName*` 扩展
 
-# 清理构建
-./gradlew clean
-```
-
-## 重要配置
-
-- Gradle: 8.10.2
-- AGP: 8.8.2
-- Kotlin: 1.9.24
-- compileSdk: 35, minSdk: 23
-- JVM: Java 11
-
-## 依赖仓库
-
-项目使用阿里云镜像 + JitPack + Google + MavenCentral
-
-## 模块规范
-
-- Basic 模块命名空间: `com.letter.basic`
-- app 模块命名空间: `com.letter.basic`
-- 两者均启用 viewBinding
-
-## 项目规则
-- 扩展函数统一放在 `Basic/src/main/java/com/letter/basic/extend/`
-- 使用 `./gradlew :Basic:assembleRelease` 构建库模块发布到 JitPack
+## 验证 / CI
+- 仓库内无 lint 配置、无 CI 工作流、无有意义的测试
+- 提交前只能依赖本地编译；CI 流水线由调用方自行配置
 
 ## 注释规范
-
-本项目遵循通用 Android 注释规范，正文位于 opencode 全局 skill：
-
-`~/.config/opencode/skill/android-comment-style/SKILL.md`
-
-**速记**：
-
-- 公共 API（`public class / fun / val`）**必须**有 KDoc / Javadoc（用途、`@param`、`@return`、`@throws`）
-- 复杂逻辑（核心算法、关键分支、魔法值）**应当**有行内注释，统一放在语句**上方**
-- 注释语言：中文为主，技术术语（Coroutine / StateFlow / Lifecycle 等）保留英文
-- `@param` / `@return` / `@throws` 说明**全部中文**，参数名与类型保留英文
-- TODO 格式：`// TODO(作者/issue号): 原因 → 计划方案`，禁止空 TODO
-- **禁止**应付式注释（"新增"、"初始化"、"这段代码很重要"等词不表意的注释），反例见规范第 5 节
+正文见 opencode 全局 skill `~/.config/opencode/skill/android-comment-style/SKILL.md`。
+速记：public API 必带 KDoc；行内注释回答"为什么"而非"做什么"；TODO 格式
+`// TODO(作者/issue号): 原因 → 计划方案`。

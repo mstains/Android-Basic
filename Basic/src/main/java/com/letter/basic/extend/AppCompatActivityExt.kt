@@ -277,19 +277,7 @@ fun Activity.restartApp() {
 }
 
 
-/**
- * 将 dp 值转换为 px（像素）。
- *
- * 公式：`px = dp * density + 0.5f`，末尾 +0.5f 用于四舍五入。
- *
- * @receiver 调用方 Context
- * @param dpValue 待转换的 dp 值
- * @return 转换后的像素值
- */
-fun Context.dip2px(dpValue: Float): Int {
-    val scale = this.resources.displayMetrics.density
-    return (dpValue * scale + 0.5f).toInt()
-}
+
 
 /**
  * 安全读取 Intent 中的 String 类型的 extra。
