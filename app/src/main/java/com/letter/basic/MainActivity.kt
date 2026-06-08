@@ -25,10 +25,13 @@ import com.letter.basic.utils.toPermissionChineseNames
  */
 class MainActivity : BaseMultiStateVBActivity<ActivityMainBinding>() {
 
-    // 权限申请启动器：延迟初始化，由 Basic 库内部完成 ActivityResultRegistry 绑定
+    // 把 launcher 提升为字段而非方法内局部变量：避免 onCreate 重建导致 ActivityResultRegistry 中
+    // 的 key 重复注册；registerMultiplePermissionsLauncher 内部用 by lazy 持有 lifecycleObserver，
+    // 必须与 Activity 生命周期绑定。
     private val mPermissionLauncher = registerMultiplePermissionsLauncher()
 
-    // 多选图片启动器：默认最多 9 项
+    // maxItems 默认为 9，对齐 Android 13+ 系统 PhotoPicker 的分页阈值；
+    // 超过 9 张会触发系统选择器分页，影响交互一致性。改大需配合自绘 UI 评估。
     private val mPhotoPickLauncher = registerMultiplePhotoPickerLauncher()
 
     /**
@@ -38,7 +41,7 @@ class MainActivity : BaseMultiStateVBActivity<ActivityMainBinding>() {
      * - 打开相册按钮：调用 [launchImagesAndVideos] 多选图片 / 视频，并对每个 Uri 显示 Toast。
      */
     override fun initListener() {
-        // 相机权限按钮点击：直接展示申请结果
+        // 示例未做"拒绝后引导跳转设置页"的生产级 UX，仅 Toast 展示结果
         viewBinding.btCameraPermission.setOnClickListener {
             mPermissionLauncher.launchPermissions(Manifest.permission.CAMERA) { allGranted, _, deniedList ->
                 if (allGranted) {

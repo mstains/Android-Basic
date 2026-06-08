@@ -151,10 +151,12 @@ fun <T> createIntent(
  * 把 [params] 中的键值对逐个填入 [intent] 的 extras。
  *
  * 支持 Int / Long / CharSequence / String / Float / Double / Char / Short / Boolean /
- * Serializable / Bundle / Parcelable / 各类数组；不支持的类型抛出 [RuntimeException]。
+ * Serializable / Bundle / Parcelable / 各类数组；不支持的类型抛出 [RuntimeException]（**开发期断言**，
+ * 调用方需自行保证 params 类型在白名单内，运行时不会优雅降级）。
  *
  * @param intent 目标 Intent
  * @param params 键值对
+ * @throws RuntimeException 当 value 类型不在支持列表内时抛出，未受检
  */
 private fun fillIntentArguments(intent: Intent, params: Array<out Pair<String, Any?>>) {
     params.forEach {
@@ -189,7 +191,6 @@ private fun fillIntentArguments(intent: Intent, params: Array<out Pair<String, A
             is BooleanArray -> intent.putExtra(it.first, value)
             else -> throw RuntimeException("Intent extra ${it.first} has wrong type ${value.javaClass.name}")
         }
-        return@forEach
     }
 }
 
