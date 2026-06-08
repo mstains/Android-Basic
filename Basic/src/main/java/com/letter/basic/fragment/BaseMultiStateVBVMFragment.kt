@@ -44,8 +44,9 @@ abstract class BaseMultiStateVBVMFragment<VB : ViewBinding, VM : ViewModel> :
     private fun initViewModel() {
         // 当前为占位实现：仅把 this 注册为 LifecycleObserver，未触发 mViewModel 懒加载。
         // 真实 ViewModel 初始化由子类在 providerVMClass() 引用 mViewModel 时按需触发。
-        // 后续若需在 initViewModel 中做 ViewModel 字段初始化（如 SavedStateHandle），
-        // 应在此处扩展，并同步在 onDestroy 中清理对应 observer。
+        // TODO(letter#待建): 当前 initViewModel 为占位,后续若需在 initViewModel 中做
+        //   ViewModel 字段初始化(如 SavedStateHandle 注入) → 在此处扩展,同步在 onDestroy
+        //   中清理对应 observer
         providerVMClass().let { viewModel ->
 
             lifecycle.addObserver(this)
