@@ -8,29 +8,64 @@ import android.view.WindowManager
  *
  * 采用流式 API：每个 setter 返回 `this` 以支持链式调用，
  * 避免 DialogFragment 子类编写大量临时变量。
+ *
+ * **非线程安全**：builder 模式假定单线程配置，多线程并发设置字段需自行加锁。
  */
 class WindowBuilder {
 
+    /**
+     * Dialog 根 View 的左边距，单位像素，默认 0。
+     */
     var leftPadding = 0
 
+    /**
+     * Dialog 根 View 的右边距，单位像素，默认 0。
+     */
     var rightPadding = 0
 
+    /**
+     * Dialog 根 View 的上边距，单位像素，默认 0。
+     */
     var topPadding = 0
 
+    /**
+     * Dialog 根 View 的下边距，单位像素，默认 0。
+     */
     var bottomPadding = 0
 
+    /**
+     * Window 宽度，默认 [WindowManager.LayoutParams.MATCH_PARENT]。
+     */
     var widthParam = WindowManager.LayoutParams.MATCH_PARENT
 
+    /**
+     * Window 高度，默认 [WindowManager.LayoutParams.MATCH_PARENT]。
+     */
     var heightParam = WindowManager.LayoutParams.MATCH_PARENT
 
+    /**
+     * Window 在屏幕中的对齐方式，默认 [Gravity.CENTER]。
+     */
     var gravity = Gravity.CENTER
 
+    /**
+     * 点击 Dialog 外部区域是否自动 dismiss，默认 true。
+     */
     var isTouchOutside = true
 
+    /**
+     * 是否允许通过返回键 / 外部触摸取消 Dialog，默认 true。
+     */
     var isCancelable = true
 
+    /**
+     * 是否使用 Dialog 主题默认的进出场动画，默认 true。
+     */
     var isAnim = true
 
+    /**
+     * Dialog 窗口是否获取输入焦点（影响返回键与物理按键的接收），默认 true。
+     */
     var isFocus = true
 
     /**

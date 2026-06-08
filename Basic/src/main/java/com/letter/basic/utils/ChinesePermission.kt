@@ -265,6 +265,10 @@ enum class ChinesePermission(
         /**
          * 全量权限 → 中文名映射表。
          *
+         * **性能说明**：当前实现为 **O(N) 重建**，每次 `get()` 都重新构造 Map。
+         * 高频调用场景（权限申请弹窗列表）建议调用方自行缓存结果（如 `val map = ChinesePermission.allMap`）。
+         * 当前业务未触发热路径，暂不引入 `by lazy` 以保留 enum 增删时自动同步的便利性。
+         *
          * @return 不可变 Map，键为权限字符串，值为中文名
          */
         @JvmStatic

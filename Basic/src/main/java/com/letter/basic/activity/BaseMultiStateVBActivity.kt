@@ -39,7 +39,9 @@ abstract class BaseMultiStateVBActivity<VB : ViewBinding> : BaseCommonMultiState
     /**
      * 自定义标题栏返回操作。
      *
-     * 子类可重写以拦截标题栏返回按钮，默认行为为结束当前 Activity。
+     * 子类可重写以拦截标题栏返回按钮，默认行为为 [finish] 结束当前 Activity。
+     * **拦截语义**：子类重写后**仍需**自行调用 [finish]（或显式 `return` 表示不消费），
+     * 未显式 finish 不会自动结束 Activity——因为基类无法判断子类是否真正消费了点击事件。
      */
     protected open fun topDefineCancel() {
 
@@ -52,6 +54,7 @@ abstract class BaseMultiStateVBActivity<VB : ViewBinding> : BaseCommonMultiState
      * 标题栏右侧文字点击回调。
      *
      * 子类重写以响应右侧文字按钮的点击事件，默认空实现。
+     * 调用时机：仅当标题栏存在右侧文字按钮时才会触发，无右侧文字按钮时本方法不会执行。
      */
     protected open fun topRightTextDefineCancel() {
 

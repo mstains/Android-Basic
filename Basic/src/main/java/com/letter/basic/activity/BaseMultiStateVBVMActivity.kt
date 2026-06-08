@@ -24,6 +24,10 @@ abstract class BaseMultiStateVBVMActivity<VB : ViewBinding, VM : ViewModel> :
      * 当前 Activity 持有的 ViewModel 实例。
      *
      * 懒加载创建，生命周期与 Activity 一致（实际作用域跟随 ViewModelStore）。
+     *
+     * 注意：使用 [ViewModelProvider.NewInstanceFactory] 仅支持**无参构造**的 ViewModel；
+     * 若子类 ViewModel 依赖 `Application` / `SavedStateHandle` 等入参，**会在运行时抛异常**，
+     * 此时应改用 `AndroidViewModelFactory` 或自定义 Factory。
      */
     protected val mViewModel: VM by lazy {
         ViewModelProvider.NewInstanceFactory().create(providerVMClass())
@@ -32,6 +36,8 @@ abstract class BaseMultiStateVBVMActivity<VB : ViewBinding, VM : ViewModel> :
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // super.onCreate 已完成 4 步 init（initStatusBar → initView → initData → initListener），
+        // 本方法仅在最后追加 startObserve，确保订阅在数据加载完成后就绪
         startObserve()
     }
 

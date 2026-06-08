@@ -54,6 +54,11 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
      * 内置初始化流程。
      *
      * 按 initIntent → initBundle → initBase 顺序调度，由基类在 onCreate 末尾调用。
+     *
+     * **静默失败语义**：当 Dialog 尚未 attach 到 Activity（`activity == null`）时，
+     * [initIntent] **不会**被触发；当 [arguments] 为 null 时 [initBundle] **不会**被触发。
+     * 这是 by design 的契约约束（参数来源缺失 → 对应回调无意义），但调用方无法从代码感知失败，
+     * 子类若有强制参数需求，应自行在 [onCreate] 入口做 assert。
      */
     private fun init() {
         activity?.apply {
@@ -68,7 +73,8 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
     /**
      * 获取 Activity 启动 Intent 中传递的参数。
      *
-     * 子类重写以解析宿主 Activity 传递过来的 Intent 数据。
+     * **触发顺序**：[initIntent] 先于 [initBundle] 先于 [initBase] 执行；
+     * 仅当 Dialog 已 attach 到 Activity 时触发，`activity == null` 时**静默跳过**。
      *
      * @param intent 启动当前 Dialog 的宿主 Activity 的 Intent
      */
@@ -79,7 +85,8 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
     /**
      * 获取 Bundle 中传递的参数。
      *
-     * 子类重写以解析 show() 时传入的 arguments 数据。
+     * **触发顺序**：[initBundle] 后于 [initIntent]、先于 [initBase] 执行；
+     * 仅当 [arguments] 不为 null 时触发，否则**静默跳过**。
      *
      * @param bundle 调用 setArguments(Bundle) 时传入的参数 Bundle
      */
@@ -90,7 +97,9 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
     /**
      * 加载必要初始化对象。
      *
-     * 子类重写以完成 ViewBinding 创建之前必须就绪的初始化（如构造数据对象）。
+     * **触发顺序**：[initBase] 是 init 三步中的最后一步，先于 [onCreateView] 与 ViewBinding 创建。
+     * 子类重写以完成 ViewBinding 创建之前必须就绪的初始化（如构造数据对象、注册 ViewModel 之外的回调）。
+     * 与 [initView] 的区别：[initBase] 时尚无 view 可引用，**不应**访问任何 UI 元素。
      */
     open fun initBase() {
 
@@ -131,6 +140,8 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
      * 加载窗口参数。
      *
      * 把 [getWindowBuild] 返回的配置实际应用到当前 Dialog 的 Window 上。
+     * 调用时机：[onCreateView] 入口处，**先于** [createViewBinding]；此时 [dialog] 可能尚未创建，
+     * 故内部用 `dialog?.apply { ... }` 包裹，重复调用无副作用。
      */
     protected open fun initWindow() {
 
@@ -167,7 +178,8 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
     /**
      * 初始化视图。
      *
-     * 子类重写以配置视图属性（文本、图片、可见性等）。
+     * 由基类在 [onActivityCreated] 中按 `initView → initData → initListener` 顺序第一步调用。
+     * 子类重写以配置视图属性（文本、图片、可见性等）；**仅**操作 [viewBinding]，不发起数据请求。
      */
     open fun initView() {
 
@@ -176,7 +188,8 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
     /**
      * 加载数据。
      *
-     * 子类重写以加载页面所需的初始数据。
+     * 由基类在 [onActivityCreated] 中按 `initView → initData → initListener` 顺序第二步调用。
+     * 子类重写以加载页面所需的初始数据（网络/数据库/SharedPreferences 等）。
      */
     open fun initData() {
 
@@ -185,6 +198,7 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
     /**
      * 加载监听器。
      *
+     * 由基类在 [onActivityCreated] 中按 `initData → initListener` 顺序第三步（最后一步）调用。
      * 子类重写以注册 UI 事件监听（点击、文本变化等）。
      */
     open fun initListener() {
@@ -195,6 +209,10 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
         try {
             super.show(manager, tag)
         } catch (e: Exception) {
+            // 兜底捕获：DialogFragment 重复 show / 事务状态丢失等场景下
+            // super.show 会抛 IllegalStateException / TransactionTooLargeException，
+            // 此处仅 printStackTrace 不向上抛，避免 show 失败导致宿主 Activity 崩溃。
+            // **调用方完全感知不到失败**——若需严格感知，应自行在 show 前用 isAdded / isStateSaved 防御。
             e.printStackTrace()
         }
     }
@@ -202,12 +220,16 @@ abstract class BaseMultiStateVBDialogFragment<VB : ViewBinding> : DialogFragment
     /**
      * 使用类名作为默认 tag 显示 Dialog。
      *
+     * tag 自动取 `this::class.java.simpleName`；**同一 Fragment 重复 show 会触发 IllegalStateException**，
+     * 该异常会被本方法静默吞掉（见 [show] 注释），调用方应自行去重。
+     *
      * @param transaction FragmentManager 实例，用于调度 show
      */
     fun show(transaction: FragmentManager) {
         try {
             this.show(transaction, this::class.java.simpleName)
         } catch (e: Exception) {
+            // 与 show(manager, tag) 同策略：静默吞掉 IllegalStateException / 事务冲突等异常
             e.printStackTrace()
         }
 
