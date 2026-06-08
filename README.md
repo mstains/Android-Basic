@@ -68,7 +68,7 @@ dependencyResolutionManagement {
 **Step 2** — 在模块 `build.gradle` 中添加依赖：
 
 ```groovy
-implementation 'com.github.mstains:android-basic:1.0'
+implementation 'com.github.mstains:android-basic:1.4'
 ```
 
 > 坐标大小写敏感（`android-basic`，**非** `Android-Basic`）；版本号以 `Basic/build.gradle` 中 `VERSION_NAME` 为准，后续随 tag 演进。
