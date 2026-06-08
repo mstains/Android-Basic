@@ -7,15 +7,13 @@ import com.letter.basic.utils.ActivityController
 
 
 /**
- * @Package:        com.energy.sources.base.activity
- * @ClassName:      BaseMultiStateActivity
- * @Description:    activity基类
- * @Author:         Boqing.wu
- * @CreateDate:     2024/12/31 上午10:28
- * @UpdateUser:     更新者：
- * @UpdateDate:     2024/12/31 上午10:28
- * @UpdateRemark:   更新说明：
- * @Version:        1.0
+ * 通用 Activity 基类。
+ *
+ * 自动加入 [ActivityController] 栈管理，便于一键结束全部 Activity。
+ * 子类无需关心入栈/出栈逻辑。
+ *
+ * @author Boqing.wu
+ * @since 2026-06-04
  */
 open class BaseMultiStateActivity : AppCompatActivity(), LifecycleObserver {
 
@@ -23,8 +21,6 @@ open class BaseMultiStateActivity : AppCompatActivity(), LifecycleObserver {
         super.onCreate(savedInstanceState)
         ActivityController.addActivity(this)
     }
-
-
 
     override fun onDestroy() {
         super.onDestroy()

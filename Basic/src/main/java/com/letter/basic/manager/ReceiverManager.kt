@@ -8,9 +8,13 @@ import com.letter.basic.utils.BroadcastUtil
 
 
 /**
- * 2018/12/4 11:31
- * description:广播管理类
- * ******************************************
+ * 广播注册 / 注销管理器。
+ *
+ * 内部使用 [BroadcastUtil]（基于 [androidx.localbroadcastmanager.content.LocalBroadcastManager]）
+ * 维护 Action → Receiver 映射，对外屏蔽重复注册 / 反注册细节。
+ *
+ * @param mContext 用于获取 [LocalBroadcastManager] 单例的上下文
+ * @param mReceiverImpl 实际处理广播回调的实现类
  */
 class ReceiverManager(private val mContext: Context, private val mReceiverImpl: ReceiverImpl) {
 
@@ -18,7 +22,11 @@ class ReceiverManager(private val mContext: Context, private val mReceiverImpl: 
     private var mReceiverMap: HashMap<String, Receiver>? = null
 
     /**
-     * 注册广播
+     * 注册监听指定 Action 的广播。
+     *
+     * 同一 Action 重复注册会被内部去重（基于 Map key 唯一性）。
+     *
+     * @param action 要监听的广播 Action 字符串
      */
     fun registerAction(action: String) {
         if (mReceiverMap == null) {
@@ -36,7 +44,9 @@ class ReceiverManager(private val mContext: Context, private val mReceiverImpl: 
     }
 
     /**
-     * 注销广播
+     * 注销指定 Action 的广播。
+     *
+     * @param action 要注销的广播 Action 字符串；若未注册则不报错
      */
     fun unRegisterAction(action: String) {
         mReceiverMap?.let { map ->
@@ -47,14 +57,14 @@ class ReceiverManager(private val mContext: Context, private val mReceiverImpl: 
     }
 
     /**
-     * 注销所有广播
+     * 注销当前管理器注册的全部广播并清空内部 Map。
      */
     fun unRegisterAllAction() {
         BroadcastUtil.unRegisterAction(mContext, mReceiverMap)
     }
 
     /**
-     * ReceiverManager内部实现的接收者
+     * 内部使用的广播接收者，转发回调到 [mReceiverImpl]。
      */
     inner class Receiver : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -62,4 +72,3 @@ class ReceiverManager(private val mContext: Context, private val mReceiverImpl: 
         }
     }
 }
-

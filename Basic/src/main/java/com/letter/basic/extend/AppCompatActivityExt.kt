@@ -12,7 +12,6 @@ import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import androidx.annotation.IdRes
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -22,8 +21,19 @@ import java.io.Serializable
 
 
 /**
- * `fragment`添加到了容器中 其Id为`frameId`.
- * 操作由fragmentManager执行
+ * 通用 [AppCompatActivity] / [Fragment] / [FragmentManager] 扩展方法集合。
+ *
+ * 涵盖 Fragment 事务软提交、软键盘控制、状态栏配置、Intent extra 安全读取等场景。
+ */
+
+/**
+ * 通过 [FragmentTransaction.replace] 替换容器中的 Fragment，并以 `commit()` 方式提交。
+ *
+ * 状态保存敏感场景请改用 [replaceFragmentInActivityNotState]。
+ *
+ * @receiver 调用方 Activity
+ * @param fragment 待展示的目标 Fragment
+ * @param frameId Fragment 容器 ID
  */
 fun AppCompatActivity.replaceFragmentInActivity(fragment: Fragment, @IdRes frameId: Int) {
     supportFragmentManager.transact {
@@ -31,6 +41,15 @@ fun AppCompatActivity.replaceFragmentInActivity(fragment: Fragment, @IdRes frame
     }
 }
 
+/**
+ * 通过 [FragmentTransaction.replace] 替换容器中的 Fragment，并以 `commitAllowingStateLoss()` 方式提交。
+ *
+ * 适用于 Activity 状态已被保存、不希望触发 `IllegalStateException` 的场景。
+ *
+ * @receiver 调用方 Activity
+ * @param fragment 待展示的目标 Fragment
+ * @param frameId Fragment 容器 ID
+ */
 fun AppCompatActivity.replaceFragmentInActivityNotState(fragment: Fragment, @IdRes frameId: Int) {
     supportFragmentManager.transactAllowingStateLoss {
         replace(frameId, fragment)
@@ -38,8 +57,10 @@ fun AppCompatActivity.replaceFragmentInActivityNotState(fragment: Fragment, @IdR
 }
 
 /**
- * `fragment`添加到了容器中 其tag为`tag`.
- * 操作由fragmentManager执行
+ * 向 Activity 默认 Fragment 容器（无 frameId，使用 Fragment tag）添加 Fragment。
+ *
+ * @receiver 调用方 Activity
+ * @param fragment 待添加的 Fragment
  */
 fun AppCompatActivity.addFragmentToActivity(fragment: Fragment) {
     supportFragmentManager.transact {
@@ -47,6 +68,13 @@ fun AppCompatActivity.addFragmentToActivity(fragment: Fragment) {
     }
 }
 
+/**
+ * 向 Activity 默认 Fragment 容器添加 Fragment。
+ *
+ * @receiver 调用方 Activity
+ * @param fragment 待添加的 Fragment
+ * @param tag Fragment 在 FragmentManager 中的 tag
+ */
 fun AppCompatActivity.addFragmentToActivity(fragment: Fragment, tag: String) {
     supportFragmentManager.transact {
         add(fragment, tag)
@@ -54,30 +82,61 @@ fun AppCompatActivity.addFragmentToActivity(fragment: Fragment, tag: String) {
 }
 
 
+/**
+ * 显示已添加但处于 hide 状态的 Fragment。
+ *
+ * @receiver 调用方 Activity
+ * @param fragment 待显示的 Fragment
+ */
 fun AppCompatActivity.showFragment(fragment: Fragment) {
     supportFragmentManager.transact {
         show(fragment)
     }
 }
 
+/**
+ * 隐藏 Fragment（不销毁视图）。
+ *
+ * @receiver 调用方 Activity
+ * @param fragment 待隐藏的 Fragment
+ */
 fun AppCompatActivity.hideFragment(fragment: Fragment) {
     supportFragmentManager.transact {
         hide(fragment)
     }
 }
 
+/**
+ * 通过 `commitAllowingStateLoss()` 向指定容器添加 Fragment，tag 为类名。
+ *
+ * @receiver 调用方 Activity
+ * @param fragment 待添加的 Fragment
+ * @param frameId 容器 ID
+ */
 fun AppCompatActivity.addFragmentToActivityNotState(fragment: Fragment, @IdRes frameId: Int) {
     supportFragmentManager.transactAllowingStateLoss {
         add(frameId, fragment, fragment.javaClass.simpleName)
     }
 }
 
+/**
+ * `commitAllowingStateLoss()` 方式显示 Fragment。
+ *
+ * @receiver 调用方 Activity
+ * @param fragment 待显示的 Fragment
+ */
 fun AppCompatActivity.showFragmentToActivityNotState(fragment: Fragment) {
     supportFragmentManager.transactAllowingStateLoss {
         show(fragment)
     }
 }
 
+/**
+ * `commitAllowingStateLoss()` 方式隐藏 Fragment。
+ *
+ * @receiver 调用方 Activity
+ * @param fragment 待隐藏的 Fragment
+ */
 fun AppCompatActivity.hideFragmentToActivityNotState(fragment: Fragment) {
     supportFragmentManager.transactAllowingStateLoss {
         hide(fragment)
@@ -85,8 +144,11 @@ fun AppCompatActivity.hideFragmentToActivityNotState(fragment: Fragment) {
 }
 
 /**
- * `fragment`添加到了容器中 其tag为`tag`. 允许其状态丢失
- * 操作由fragmentManager执行
+ * 通过 `commitAllowingStateLoss()` 方式向容器添加 Fragment。
+ *
+ * @receiver 调用方 Activity
+ * @param fragment 待添加的 Fragment
+ * @param tag Fragment 在 FragmentManager 中的 tag
  */
 fun AppCompatActivity.addFragmentToActivityAllowingStateLoss(fragment: Fragment, tag: String) {
     supportFragmentManager.transactAllowingStateLoss {
@@ -94,6 +156,12 @@ fun AppCompatActivity.addFragmentToActivityAllowingStateLoss(fragment: Fragment,
     }
 }
 
+/**
+ * `commitAllowingStateLoss()` 方式隐藏 Fragment。
+ *
+ * @receiver 调用方 Activity
+ * @param fragment 待隐藏的 Fragment
+ */
 fun AppCompatActivity.hideFragmentToActivityAllowingStateLoss(fragment: Fragment) {
     supportFragmentManager.transactAllowingStateLoss {
         hide(fragment)
@@ -102,7 +170,13 @@ fun AppCompatActivity.hideFragmentToActivityAllowingStateLoss(fragment: Fragment
 
 
 /**
- * 配置ActionBar
+ * 配置 ActionBar。
+ *
+ * 把指定 ID 的 View 当作 Toolbar 注入到 Activity，并暴露 ActionBar 供调用方配置。
+ *
+ * @receiver 调用方 Activity
+ * @param toolbarId Toolbar 视图资源 ID
+ * @param action 在 [ActionBar] 上下文执行的配置 Lambda
  */
 fun AppCompatActivity.setupActionBar(@IdRes toolbarId: Int, action: ActionBar.() -> Unit) {
     setSupportActionBar(findViewById(toolbarId))
@@ -112,7 +186,13 @@ fun AppCompatActivity.setupActionBar(@IdRes toolbarId: Int, action: ActionBar.()
 }
 
 /**
- * 打开软键盘
+ * 打开软键盘并把焦点定位到 [editText]。
+ *
+ * 同时调用 [InputMethodManager.showSoftInput] 与 [InputMethodManager.toggleSoftInput]
+ * 是为了兼容部分定制 ROM（如 MIUI / EMUI）的隐藏式弹起行为。
+ *
+ * @receiver 调用方 Activity
+ * @param editText 目标 EditText
  */
 fun AppCompatActivity.openKeyBoard(editText: EditText) {
     val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -121,7 +201,10 @@ fun AppCompatActivity.openKeyBoard(editText: EditText) {
 }
 
 /**
- * 关闭软键盘
+ * 关闭与 [editText] 关联的软键盘。
+ *
+ * @receiver 调用方 Activity
+ * @param editText 当前持有输入焦点的 EditText
  */
 fun AppCompatActivity.closeKeyBoard(editText: EditText) {
     val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -129,8 +212,14 @@ fun AppCompatActivity.closeKeyBoard(editText: EditText) {
 }
 
 /**
- * 设置状态栏透明
+ * 设置状态栏全透明（已废弃，建议改用 edge-to-edge 方案）。
+ *
+ * Android 5.0+：使用 `SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN` 配合 `FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS`
+ * 实现沉浸式；5.0 以下回退到 `FLAG_TRANSLUCENT_STATUS`。
+ *
+ * @receiver 调用方 Activity
  */
+@Deprecated("使用 edge-to-edge 方案")
 fun AppCompatActivity.setStatusBarFullTransparent() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
         val window = window
@@ -141,13 +230,14 @@ fun AppCompatActivity.setStatusBarFullTransparent() {
         window.statusBarColor = Color.TRANSPARENT
     } else {
         window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-        //虚拟键盘也透明
-        //getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
     }
 }
 
 /**
- * 启动FragmentTransaction，然后commit
+ * 启动 [FragmentTransaction]，执行 [action] 后以 `commit()` 方式提交。
+ *
+ * @receiver 调用方 FragmentManager
+ * @param action 在 [FragmentTransaction] 上下文中执行的配置 Lambda
  */
 inline fun FragmentManager.transact(action: FragmentTransaction.() -> Unit) {
     beginTransaction().apply {
@@ -156,7 +246,9 @@ inline fun FragmentManager.transact(action: FragmentTransaction.() -> Unit) {
 }
 
 /**
- * 隐藏所有Fragment
+ * 一键隐藏 Activity 中所有 Fragment。
+ *
+ * @receiver 调用方 Activity
  */
 fun AppCompatActivity.hideAllFragment() {
     val fragments = supportFragmentManager.fragments
@@ -170,118 +262,135 @@ fun AppCompatActivity.hideAllFragment() {
 }
 
 /**
- * 重启app
+ * 重启当前应用。
+ *
+ * 结束当前进程并通过 `Intent.makeRestartActivityTask` 重新拉起启动 Activity。
+ *
+ * @receiver 调用方 Activity
  */
 fun Activity.restartApp() {
     val intent = packageManager.getLaunchIntentForPackage(packageName)
+    // 强解前提：调用方需确保 manifest 已注册带 LAUNCHER Intent-filter 的 Activity。
+    // 若无启动 Activity（如部分单 Activity 架构未声明 LAUNCHER），此处会抛 NPE。
     val componentName = intent!!.component
     val mainIntent = Intent.makeRestartActivityTask(componentName)
     startActivity(mainIntent)
     Runtime.getRuntime().exit(0)
-
 }
 
 
+
+
 /**
- * 根据手机的分辨率从 dp 的单位 转成为 px(像素)
+ * 安全读取 Intent 中的 String 类型的 extra。
+ *
+ * @receiver 调用方 Activity
+ * @param keyName extra 键名
+ * @param defaultValue 未找到时返回的默认值
+ * @return extra 值或默认值
  */
-fun Context.dip2px(dpValue: Float): Int {
-    val scale = this.resources.displayMetrics.density
-    return (dpValue * scale + 0.5f).toInt()
-}
-
-/**
- * 封装获取intent中string值
- * */
 fun Activity.getStringExtra(keyName: String, defaultValue: String = ""): String {
-
     return intent.getStringExtra(keyName) ?: defaultValue
-
 }
 
 /**
- * 获取intent中List<String>值
- * */
+ * 安全读取 Intent 中的 String 列表类型的 extra。
+ *
+ * @receiver 调用方 Activity
+ * @param keyName extra 键名
+ * @param defaultValue 未找到时返回的默认列表
+ * @return extra 值或默认列表
+ */
 fun Activity.getStringListExtra(
     keyName: String, defaultValue: MutableList<String> = mutableListOf()
 ): MutableList<String> {
-
     return intent.getStringArrayListExtra(keyName) ?: defaultValue
-
 }
 
 
 /**
- * 封装获取intent中boolean值
- * */
+ * 读取 Intent 中的 Boolean 类型 extra。
+ *
+ * @receiver 调用方 Activity
+ * @param keyName extra 键名
+ * @param defaultValue 未找到时返回的默认值
+ * @return extra 值或默认值
+ */
 fun Activity.getBooleanExtra(keyName: String, defaultValue: Boolean = false): Boolean {
-
     return intent.getBooleanExtra(keyName, defaultValue)
 }
 
 
 /**
- * 封装获取intent中double值
- * */
+ * 读取 Intent 中的 Double 类型 extra。
+ *
+ * @receiver 调用方 Activity
+ * @param keyName extra 键名
+ * @param defaultValue 未找到时返回的默认值
+ * @return extra 值或默认值
+ */
 fun Activity.getDoubleExtra(keyName: String, defaultValue: Double = 0.0): Double =
     intent.getDoubleExtra(keyName, defaultValue)
 
 
 /**
- * 封装获取intent中int值
- * */
+ * 读取 Intent 中的 Int 类型 extra。
+ *
+ * @receiver 调用方 Activity
+ * @param keyName extra 键名
+ * @param defaultValue 未找到时返回的默认值
+ * @return extra 值或默认值
+ */
 fun Activity.getIntExtra(keyName: String, defaultValue: Int = 0): Int =
     intent.getIntExtra(keyName, defaultValue)
 
 
 /**
- * 封装获取intent中Long值
- * */
+ * 读取 Intent 中的 Long 类型 extra。
+ *
+ * @receiver 调用方 Activity
+ * @param keyName extra 键名
+ * @param defaultValue 未找到时返回的默认值
+ * @return extra 值或默认值
+ */
 fun Activity.getLongExtra(keyName: String, defaultValue: Long = 0L): Long =
     intent.getLongExtra(keyName, defaultValue)
 
 /**
- * 封装获取intent中Float值
- * */
+ * 读取 Intent 中的 Float 类型 extra。
+ *
+ * @receiver 调用方 Activity
+ * @param keyName extra 键名
+ * @param defaultValue 未找到时返回的默认值
+ * @return extra 值或默认值
+ */
 fun Activity.getFloatExtra(keyName: String, defaultValue: Float = 0f): Float {
-
     return intent.getFloatExtra(keyName, defaultValue)
 }
 
 
 /**
- * 获取Serializable
- * */
+ * 读取 Intent 中的 Serializable 类型 extra。
+ *
+ * @receiver 调用方 Activity
+ * @param keyName extra 键名
+ * @return 转换成功返回 `T?`；未找到或类型不匹配返回 null
+ */
 fun <T> Activity.getSerializableExtra(keyName: String): T? {
-
     return try {
         intent.getSerializableExtra(keyName) as T?
     } catch (e: Exception) {
         e.printStackTrace()
         null
     }
-
 }
 
 /**
- * 获取ParcelableExtra
- * */
+ * 读取 Intent 中的 Parcelable 类型 extra。
+ *
+ * @receiver 调用方 Activity
+ * @param keyName extra 键名
+ * @return 转换成功返回 `T?`；未找到或类型不匹配返回 null
+ */
 fun <T : Parcelable> Activity.getParcelableExtra(keyName: String): T? =
     intent.getParcelableExtra<T>(keyName)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -6,22 +6,23 @@ import androidx.viewbinding.ViewBinding
 
 
 /**
- * @Package:        com.energy.sources.base.activity
- * @ClassName:      BaseMultiStateVBActivity
- * @Description:    activity基类，多个页面状态的activity
- * @Author:         Boqing.wu
- * @CreateDate:     2024/12/31 上午9:49
- * @UpdateUser:     更新者：
- * @UpdateDate:     2024/12/31 上午9:49
- * @UpdateRemark:   更新说明：
- * @Version:        1.0
+ * 支持 ViewBinding 的通用 Activity 基类。
+ *
+ * 通过 [createViewBinding] 抽象方法由子类提供绑定实例，
+ * 基类在 onCreate 中按 initStatusBar → initView → initData → initListener 顺序调用。
+ *
+ * @param VB ViewBinding 类型，由子类在 createViewBinding 中具体化
+ * @author Boqing.wu
+ * @since 2026-06-04
  */
 abstract class BaseMultiStateVBActivity<VB : ViewBinding> : BaseCommonMultiStateActivity() {
 
-
     /**
-     * viewBinding应用对象
-     * */
+     * 当前 Activity 的 ViewBinding 实例。
+     *
+     * 懒加载创建，由 [createViewBinding] 在首次访问时构造。
+     * 生命周期与 Activity 一致，无需手动释放。
+     */
     protected val viewBinding: VB by lazy { createViewBinding(LayoutInflater.from(this)) }
 
 
@@ -32,18 +33,15 @@ abstract class BaseMultiStateVBActivity<VB : ViewBinding> : BaseCommonMultiState
         initView()
         initData()
         initListener()
-
-
     }
 
 
-
-
-
-
-
     /**
-     * 自定义标题栏返回操作
+     * 自定义标题栏返回操作。
+     *
+     * 子类可重写以拦截标题栏返回按钮，默认行为为 [finish] 结束当前 Activity。
+     * **拦截语义**：子类重写后**仍需**自行调用 [finish]（或显式 `return` 表示不消费），
+     * 未显式 finish 不会自动结束 Activity——因为基类无法判断子类是否真正消费了点击事件。
      */
     protected open fun topDefineCancel() {
 
@@ -53,7 +51,10 @@ abstract class BaseMultiStateVBActivity<VB : ViewBinding> : BaseCommonMultiState
 
 
     /**
-     * 右侧文字点击
+     * 标题栏右侧文字点击回调。
+     *
+     * 子类重写以响应右侧文字按钮的点击事件，默认空实现。
+     * 调用时机：仅当标题栏存在右侧文字按钮时才会触发，无右侧文字按钮时本方法不会执行。
      */
     protected open fun topRightTextDefineCancel() {
 
@@ -61,7 +62,12 @@ abstract class BaseMultiStateVBActivity<VB : ViewBinding> : BaseCommonMultiState
 
 
     /**
-     * 创建viewBinding
-     * */
+     * 创建 ViewBinding 实例。
+     *
+     * 由子类重写，使用 ViewBinding 的 inflate 方法构造绑定实例。
+     *
+     * @param inflater LayoutInflater 实例，由基类从当前 Activity 上下文创建
+     * @return 子类持有的 ViewBinding 实例
+     */
     abstract fun createViewBinding(inflater: LayoutInflater): VB
 }
