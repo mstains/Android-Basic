@@ -287,6 +287,9 @@ fun Context.getStoragePaths(): Array<String?>? {
     val sm =
         this.getSystemService(Context.STORAGE_SERVICE) as StorageManager
     try {
+        // 反射调用隐藏 API 是历史兼容方案：Android 早期 StorageManager 未公开 getVolumePaths，
+        // 业务侧需要枚举多存储设备路径时只能反射。Android 11+ 推荐改用 MediaStore / SAF，
+        // 但本方法作为兼容保留，反射失败时降级返回空数组。
         paths = sm.javaClass.getMethod("getVolumePaths", null).invoke(sm, null) as Array<String?>
     } catch (e: IllegalAccessException) {
         e.printStackTrace()

@@ -270,6 +270,8 @@ fun AppCompatActivity.hideAllFragment() {
  */
 fun Activity.restartApp() {
     val intent = packageManager.getLaunchIntentForPackage(packageName)
+    // 强解前提：调用方需确保 manifest 已注册带 LAUNCHER Intent-filter 的 Activity。
+    // 若无启动 Activity（如部分单 Activity 架构未声明 LAUNCHER），此处会抛 NPE。
     val componentName = intent!!.component
     val mainIntent = Intent.makeRestartActivityTask(componentName)
     startActivity(mainIntent)

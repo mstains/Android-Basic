@@ -42,6 +42,10 @@ abstract class BaseMultiStateVBVMFragment<VB : ViewBinding, VM : ViewModel> :
 
 
     private fun initViewModel() {
+        // 当前为占位实现：仅把 this 注册为 LifecycleObserver，未触发 mViewModel 懒加载。
+        // 真实 ViewModel 初始化由子类在 providerVMClass() 引用 mViewModel 时按需触发。
+        // 后续若需在 initViewModel 中做 ViewModel 字段初始化（如 SavedStateHandle），
+        // 应在此处扩展，并同步在 onDestroy 中清理对应 observer。
         providerVMClass().let { viewModel ->
 
             lifecycle.addObserver(this)
@@ -53,7 +57,9 @@ abstract class BaseMultiStateVBVMFragment<VB : ViewBinding, VM : ViewModel> :
     /**
      * 统一错误消息处理。
      *
-     * 子类重写以统一处理 ViewModel 抛出的业务错误。
+     * 默认空实现，子类按需重写以集中处理 ViewModel 抛出的业务错误（弹 Toast / 跳转错误页 / 上报日志等）。
+     * **code 来自业务层约定**——本框架不规定错误码协议，调用方需自行保证 ViewModel 抛出的 code / message
+     * 与子类实现的处理逻辑一致。
      *
      * @param code 业务错误码，可为 null
      * @param message 错误描述，可为 null
@@ -80,6 +86,9 @@ abstract class BaseMultiStateVBVMFragment<VB : ViewBinding, VM : ViewModel> :
 
 
     override fun onDestroy() {
+        // 与 initViewModel 中的 addObserver(this) 对称。
+        // 注意：Fragment 自身已由 FragmentManager 注册为 LifecycleObserver，
+        // 此 remove 是为了清理 initViewModel 中手动 add 的额外引用，避免重复观察。
         mViewModel.let {
             lifecycle.removeObserver(this)
         }
