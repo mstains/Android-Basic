@@ -252,3 +252,38 @@ fun LocalDateTime?.daysBetween(other: LocalDateTime?): Long? {
         null
     }
 }
+
+/**
+ * 将日期字符串按 [sourcePattern] 解析为 [LocalDate] 后,再按 [pattern] 重新格式化为字符串。
+ *
+ * "format(a, b)" 的语义:a 是源字符串的格式,b 是目标输出格式。
+ * 解析过程复用同文件 [formatDate],格式化与 [toDisplayString] (LocalDate 重载) 一致;
+ * 任意一步失败或接收者为 null 时返回 null,避免上层处理 [DateTimeParseException]。
+ *
+ * @param sourcePattern 源字符串的格式模板(必须显式传)
+ * @param pattern 目标输出格式模板(必须显式传)
+ * @return 格式化结果;null 或解析失败时返回 null
+ */
+fun String?.format(sourcePattern: String, pattern: String): String? {
+    return this?.formatDate(sourcePattern)?.toDisplayString(pattern)
+}
+
+/**
+ * 将 [LocalDate] 按 [pattern] 格式化为字符串。
+ *
+ * @param pattern 目标输出格式模板(必须显式传)
+ * @return 格式化结果;null 或 pattern 不合法时返回 null
+ */
+fun LocalDate?.format(pattern: String): String? {
+    return this?.toDisplayString(pattern)
+}
+
+/**
+ * 将 [LocalDateTime] 按 [pattern] 格式化为字符串。
+ *
+ * @param pattern 目标输出格式模板(必须显式传)
+ * @return 格式化结果;null 或 pattern 不合法时返回 null
+ */
+fun LocalDateTime?.format(pattern: String): String? {
+    return this?.toDisplayString(pattern)
+}

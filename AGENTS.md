@@ -28,7 +28,7 @@
 ## 代码层硬规则
 - 继承 `BaseMultiStateVBActivity` 时，`onCreate` 固定顺序为
   `initStatusBar → initView → initData → initListener`
-  （见 `Basic/.../BaseMultiStateVBActivity.kt:32-35`），子类不要重复调用 super
+  （见 `Basic/.../BaseMultiStateVBActivity.kt:29-36`），子类不要重复调用 super
 - `IntentExt.kt` 中 `baseStartActivity*` / `baseStartActivityForResult*` 已 `@Deprecated`，
   新代码改用 `ResultCallbackLauncher` 系列（`Basic/.../ResultCallbackLauncher.kt`）
 - `BaseMultiState*` 自动入栈 `ActivityController`；若需全局 `Application`，
