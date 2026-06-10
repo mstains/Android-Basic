@@ -215,6 +215,11 @@ class ProfileActivity : AppCompatActivity() {
       // 回调运行在主线程；resultCode == Activity.RESULT_OK 表示成功
     }
   }
+
+  fun openSettings() {
+    // 纯展示型跳转，不关心返回结果，省略 onResult
+    activityLauncher.launchActivity<SettingsActivity>(context = this)
+  }
 }
 ```
 
@@ -223,6 +228,7 @@ class ProfileActivity : AppCompatActivity() {
 | 场景 | 注册方法 | 启动方法 |
 |---|---|---|
 | 启动 Activity 并接收结果 | `registerActivityLauncher()` | `launchActivity<T>()` |
+| 启动 Activity 不接收结果 | `registerActivityLauncher()` | `launchActivity<T>()`（省略 onResult） |
 | 批量申请权限 | `registerMultiplePermissionsLauncher()` | `launchPermissions(...)` |
 | 拍照（缩略图） | `registerTakePicturePreviewLauncher()` | `launch(input)` |
 | 拍照（写入 Uri） | `registerTakePictureLauncher()` | `launch(uri)` |
