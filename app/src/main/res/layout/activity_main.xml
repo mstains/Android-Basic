@@ -24,6 +24,26 @@
         android:text="打开图库"/>
 
 
+    <Button
+        android:id="@+id/btSwitchChinese"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dp"
+        android:text="切到中文"/>
+
+    <Button
+        android:id="@+id/btSwitchEnglish"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dp"
+        android:text="切到英文"/>
+
+    <Button
+        android:id="@+id/btSwitchSystem"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dp"
+        android:text="跟随系统"/>
 
 
 

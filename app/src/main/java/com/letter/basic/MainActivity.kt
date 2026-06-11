@@ -11,7 +11,9 @@ import com.letter.basic.extend.launchImagesAndVideos
 import com.letter.basic.extend.launchPermissions
 import com.letter.basic.extend.registerMultiplePermissionsLauncher
 import com.letter.basic.extend.registerMultiplePhotoPickerLauncher
+import com.letter.basic.extend.switchLanguage
 import com.letter.basic.utils.toPermissionChineseNames
+import java.util.Locale
 
 
 /**
@@ -20,6 +22,8 @@ import com.letter.basic.utils.toPermissionChineseNames
  * 演示 Basic 库中两类典型能力：
  * 1. 通过 [registerMultiplePermissionsLauncher] + [launchPermissions] 申请相机权限。
  * 2. 通过 [registerMultiplePhotoPickerLauncher] + [launchImagesAndVideos] 多选图片 / 视频。
+ *
+ * 同时演示 [switchLanguage] 扩展的 3 种调用方式（切到中文 / 切到英文 / 跟随系统）。
  *
  * @author letter
  */
@@ -39,6 +43,7 @@ class MainActivity : BaseMultiStateVBActivity<ActivityMainBinding>() {
      *
      * - 相机权限按钮：申请通过后提示"权限申请通过"，被拒绝时列出被拒绝项的中文名。
      * - 打开相册按钮：调用 [launchImagesAndVideos] 多选图片 / 视频，并对每个 Uri 显示 Toast。
+     * - 切到中文 / 切到英文 / 跟随系统按钮：调用 [switchLanguage] 切换 App 语言并重建当前 Activity。
      */
     override fun initListener() {
         // 示例未做"拒绝后引导跳转设置页"的生产级 UX，仅 Toast 展示结果
@@ -58,6 +63,18 @@ class MainActivity : BaseMultiStateVBActivity<ActivityMainBinding>() {
                     Toast.makeText(this, "$it", Toast.LENGTH_SHORT).show()
                 }
             }
+        }
+
+        // 切换语言演示：3 个按钮分别对应固定中文、固定英文、回退系统 Locale
+        viewBinding.btSwitchChinese.setOnClickListener {
+            switchLanguage(Locale.SIMPLIFIED_CHINESE)
+        }
+        viewBinding.btSwitchEnglish.setOnClickListener {
+            switchLanguage(Locale.ENGLISH)
+        }
+        // 传 null 表示回退到 Locale.getDefault()，由系统语言决定
+        viewBinding.btSwitchSystem.setOnClickListener {
+            switchLanguage(null)
         }
     }
 
