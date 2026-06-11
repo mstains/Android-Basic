@@ -130,6 +130,25 @@ inline fun <reified T : Activity> ResultCallbackLauncher<Intent, ActivityResult>
     }
 }
 
+/**
+ * 启动任意自定义 Activity，无需接收返回结果。
+ *
+ * 适用于纯展示型跳转（详情页、设置页等），不关心 resultCode 与 data。
+ * 不保存 callback 引用，回调到达时由 launcher 内部直接丢弃，
+ * 相比传入空 Lambda 的写法可避免无意义的闭包分配。
+ *
+ * @param T 目标 Activity 类型
+ * @param context 启动方 Context（用于构造 Intent）
+ * @param intentAction 在 Intent 上执行的配置 Lambda（用于 putExtra 等）
+ */
+inline fun <reified T : Activity> ResultCallbackLauncher<Intent, ActivityResult>.launchActivity(
+    context: Context,
+    crossinline intentAction: Intent.() -> Unit = {}
+) {
+    val intent = Intent(context, T::class.java).apply(intentAction)
+    this.launch(intent) {}
+}
+
 
 /**
  * 注册 [ActivityResultContracts.RequestMultiplePermissions] 启动器（Activity 重载）。
