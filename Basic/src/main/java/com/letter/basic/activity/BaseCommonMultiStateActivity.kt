@@ -53,5 +53,8 @@ abstract class BaseCommonMultiStateActivity : BaseMultiStateActivity() {
      * 由子类实现，配置状态栏颜色、图标深浅、是否全屏等。建议与 `setStatusBarFullTransparent` 扩展配合使用。
      * 由基类在 onCreate 中第一步调用，**先于** [initView] 执行，子类可在 [initView] 中读取状态栏高度做布局适配。
      */
-    abstract fun initStatusBar()
+    open fun initStatusBar() {
+
+
+    }
 }

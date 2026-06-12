@@ -2,34 +2,33 @@
 <androidx.appcompat.widget.LinearLayoutCompat xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center"
     android:orientation="vertical"
-    tools:context=".MainActivity">
+    tools:context=".LanguageExampleActivity">
 
 
     <Button
-        android:id="@+id/btCameraPermission"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="申请相机权限" />
-
-
-    <Button
-        android:id="@+id/btOpenPhoto"
+        android:id="@+id/btSwitchChinese"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="15dp"
-        android:text="打开图库" />
-
+        android:text="@string/app_change_chinese_text" />
 
     <Button
-        android:id="@+id/btSwitchLanguage"
+        android:id="@+id/btSwitchEnglish"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="15dp"
-        android:text="语言切换" />
+        android:text="@string/app_change_english_text" />
 
+    <Button
+        android:id="@+id/btSwitchSystem"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dp"
+        android:text="@string/app_auto_system_language_text" />
 
 </androidx.appcompat.widget.LinearLayoutCompat>

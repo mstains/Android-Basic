@@ -7,8 +7,10 @@ import android.widget.Toast
 import com.letter.basic.activity.BaseMultiStateVBActivity
 
 import com.letter.basic.databinding.ActivityMainBinding
+import com.letter.basic.extend.launchActivity
 import com.letter.basic.extend.launchImagesAndVideos
 import com.letter.basic.extend.launchPermissions
+import com.letter.basic.extend.registerActivityLauncher
 import com.letter.basic.extend.registerMultiplePermissionsLauncher
 import com.letter.basic.extend.registerMultiplePhotoPickerLauncher
 import com.letter.basic.extend.switchLanguage
@@ -38,6 +40,9 @@ class MainActivity : BaseMultiStateVBActivity<ActivityMainBinding>() {
     // 超过 9 张会触发系统选择器分页，影响交互一致性。改大需配合自绘 UI 评估。
     private val mPhotoPickLauncher = registerMultiplePhotoPickerLauncher()
 
+
+    private val activityLauncher = registerActivityLauncher()
+
     /**
      * 注册按钮点击监听。
      *
@@ -52,7 +57,9 @@ class MainActivity : BaseMultiStateVBActivity<ActivityMainBinding>() {
                 if (allGranted) {
                     Toast.makeText(this, "权限申请通过", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(this, "${deniedList.toPermissionChineseNames()}被拒绝", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this, "${deniedList.toPermissionChineseNames()}被拒绝", Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }
@@ -65,17 +72,14 @@ class MainActivity : BaseMultiStateVBActivity<ActivityMainBinding>() {
             }
         }
 
-        // 切换语言演示：3 个按钮分别对应固定中文、固定英文、回退系统 Locale
-        viewBinding.btSwitchChinese.setOnClickListener {
-            switchLanguage(Locale.SIMPLIFIED_CHINESE)
+
+        viewBinding.btSwitchLanguage.setOnClickListener {
+
+            activityLauncher.launchActivity<LanguageExampleActivity>(this)
+
         }
-        viewBinding.btSwitchEnglish.setOnClickListener {
-            switchLanguage(Locale.ENGLISH)
-        }
-        // 传 null 表示回退到 Locale.getDefault()，由系统语言决定
-        viewBinding.btSwitchSystem.setOnClickListener {
-            switchLanguage(null)
-        }
+
+
     }
 
     /**
@@ -88,11 +92,5 @@ class MainActivity : BaseMultiStateVBActivity<ActivityMainBinding>() {
         return ActivityMainBinding.inflate(inflater)
     }
 
-    /**
-     * 初始化状态栏。
-     *
-     * 示例未对状态栏做定制，保持系统默认样式。
-     */
-    override fun initStatusBar() {
-    }
+
 }
