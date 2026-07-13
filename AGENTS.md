@@ -18,12 +18,19 @@
 
 ## 工具链
 - Gradle 8.10.2 / AGP 8.8.2 / Kotlin 1.9.24 / compileSdk 35 / minSdk 23
-- JVM target：`app` 用 Java 11、`Basic` 用 Java 21（两模块不一致是有意的）
+- JVM target：两模块均为 Java 21（`compileOptions` + `kotlinOptions.jvmTarget`）
+- `coreLibraryDesugaring`：两模块均启用 + `desugar_jdk_libs:2.1.4`（添加新模块时不要遗漏）
 - 仓库镜像：腾讯云 + 阿里云（`settings.gradle:11-16, 28-33`）
 
 ## 依赖管理
 - 所有版本号在 `gradle/libs.versions.toml` 集中维护
 - 子模块 `build.gradle` 通过 `libs.xxx` 引用，禁止直接写坐标
+
+## 静态分析 / 注释检查
+- `:Basic` 模块配置了 **detekt**（Kotlin KDoc 检查，规则见 `.detekt.yml`）和 **Checkstyle**（Java Javadoc 检查，规则见 `checkstyle.xml`），均仅启用注释规则
+- `./gradlew :Basic:checkComments -Pscope=full` — 统一执行 detekt + checkstyle，产出 JSON 报告到 `Basic/build/reports/comments/check-comments.json`
+- detekt 默认排除 `override` 方法（在 `checkComments` task 中过滤）；Checkstyle 依赖 `@Override` 注解排除
+- `app` 模块未配置任何静态分析
 
 ## 代码层硬规则
 - 继承 `BaseMultiStateVBActivity` 时，`onCreate` 固定顺序为
@@ -37,7 +44,7 @@
 
 ## 新增能力的归位
 - 权限 / 相册 / 拍照等 `ActivityResultLauncher` → `ResultCallbackLauncher.kt`
-- 日期 `DateTimeFormatter` 模板 → `DateManager.kt`
+- 日期 `DateTimeFormatter` 模板 → `AppDateFormatter.kt` / `DatePatterns.kt`
 - 权限中文名 → `ChinesePermission` 枚举 + `toPermissionChineseName*` 扩展
 
 ## 验证 / CI

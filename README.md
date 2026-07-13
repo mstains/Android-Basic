@@ -1,12 +1,13 @@
 # Android-Basic
 
-Android 基础依赖库，基于 MVVM 架构封装 Activity、Fragment、DialogFragment 基类与常用扩展函数，提供 ViewBinding、ViewModel、本地广播、Result API 等能力的统一抽象，目标是通过 JitPack 集成即可快速搭建业务工程骨架。
+Android 基础依赖库，基于 MVVM 架构封装 Activity、Fragment、DialogFragment 基类与常用扩展函数，提供 ViewBinding、ViewModel、本地广播、Result API 等能力的统一抽象。目标是通过 JitPack 集成即可快速搭建业务工程骨架，并内置完整的 OpenCode 开发环境（自定义 agent、编码规范 skill、Git 工作流 skill、代码审查 skill）。
 
-> 开发者文档：[AGENTS.md](AGENTS.md) · 注释规范见 opencode 全局 skill `android-comment-style`
+> 开发者文档：[AGENTS.md](AGENTS.md) · OpenCode 开发环境见下方 [OpenCode 开发环境](#opencode-开发环境) · 注释规范见 opencode 全局 skill `android-comment-style`
 
 ## 目录
 
 - [项目结构](#项目结构)
+- [OpenCode 开发环境](#opencode-开发环境)
 - [工具链](#工具链)
 - [依赖管理](#依赖管理)
 - [添加依赖](#添加依赖)
@@ -32,6 +33,65 @@ Android 基础依赖库，基于 MVVM 架构封装 Activity、Fragment、DialogF
 
 JitPack 只发布 `:Basic` 模块的 AAR + sources jar，不含 `app` 演示模块。
 
+## OpenCode 开发环境
+
+本项目在 `.opencode/` 目录下配置了完整的 OpenCode 开发环境。
+
+### 自定义 Agent
+
+| Agent | 模式 | 说明 |
+|---|---|---|
+| `android-dev` | primary | Android 开发主力 agent。处理 Kotlin/Java/Compose/Gradle 任务时按场景主动加载对应 skill，采用「方案 → 确认 → 执行」双阶段交付模式。详见 `.opencode/agents/android-dev.md` |
+
+### 自定义 Skill（`.opencode/skill/`）
+
+以下 6 个 skill 由项目维护，覆盖编码规范、代码审查、Git 工作流等核心流程：
+
+| Skill | 用途 |
+|---|---|
+| `android-code-style` | Kotlin/Java 编码规范全集（注释、资源命名、代码命名、架构约定、UI 规范） |
+| `android-code-review` | 提交前代码审查编排器（敏感扫描 → 资源规范 → 代码异常 → 代码规范 → 注释合规，五节硬阻塞） |
+| `android-git-commit` | Git 安全提交编排器（同步 → 扫描 → 提交 → 推送） |
+| `android-git-commit-core` | Git 提交核心流程（变更分析 + Conventional Commit 生成） |
+| `android-git-commit-sync` | Git 同步流程（fetch/pull --rebase/冲突报告/push） |
+| `android-git-branch` | Git 分支创建（6 类标准化分支命名，基分支硬阻塞） |
+
+### 内置 Skill（`.opencode/skills/`）
+
+项目包含 18 个官方 Android skill：
+
+| 类别 | Skill | 用途 |
+|---|---|---|
+| 构建/工具 | `agp-9-upgrade` | AGP 版本升级 |
+| 构建/工具 | `android-cli` | Android CLI 工具（创建项目/管理虚拟设备/查找文档） |
+| 构建/工具 | `r8-analyzer` | R8/Proguard 规则分析、去冗余、包体积优化 |
+| UI/适配 | `adaptive` | 多形态设备适配（手机/平板/折叠屏/桌面/TV/Auto/XR） |
+| UI/适配 | `edge-to-edge` | 边到边显示、系统栏/IME insets 修复 |
+| UI/适配 | `styles` | Jetpack Compose Styles API 集成 |
+| UI/适配 | `navigation-3` | Jetpack Navigation 3 集成与迁移 |
+| UI/迁移 | `migrate-xml-views-to-jetpack-compose` | XML View → Jetpack Compose 迁移 |
+| 安全 | `android-intent-security` | Intent 安全审计（Manifest 组件/Intent 防劫持） |
+| 相机 | `camera1-to-camerax` | Camera1/Camera2 → CameraX 迁移 |
+| 支付 | `play-billing-library-version-upgrade` | Google Play Billing Library 升级 |
+| 性能 | `perfetto-trace-analysis` | Perfetto trace 卡顿/延迟/内存根因分析 |
+| 性能 | `perfetto-sql` | Perfetto SQL 查询（slice/thread/内存数据提取） |
+| 测试 | `testing-setup` | 测试策略制定、harness 搭建（单元/UI/截图/E2E） |
+| 系统集成 | `appfunctions` | App Functions（系统级工作流暴露给 AI agent） |
+| 系统集成 | `verified-email` | Credential Manager 免 OTP 已验证邮箱流程 |
+| 系统集成 | `engage-sdk-integration` | Play Engage SDK 集成与调试 |
+| XR | `display-glasses-with-jetpack-compose-glimmer` | AR 显示眼镜 Glimmer UI 开发 |
+
+### 配置结构
+
+| 路径 | 作用 |
+|---|---|
+| `.opencode/opencode.jsonc` | OpenCode 项目级配置，定义 agent 与权限白名单 |
+| `.opencode/agents/android-dev.md` | `android-dev` agent 定义（行为规则/场景映射/双阶段交付约束） |
+| `.opencode/skill/` | 项目自定义 skill（6 个） |
+| `.opencode/skills/` | 官方内置 Android skill（18 个） |
+| `AGENTS.md` | 项目级开发指南（模块/工具链/静态分析/硬规则） |
+| `~/.config/opencode/AGENTS.md` | 用户级配置（模型分层/开发偏好/会话规则） |
+
 ## 工具链
 
 | 维度 | 版本 |
@@ -41,10 +101,10 @@ JitPack 只发布 `:Basic` 模块的 AAR + sources jar，不含 `app` 演示模�
 | Kotlin | 1.9.24 |
 | compileSdk / targetSdk | 35 |
 | minSdk | 23 |
-| JVM target（`app`） | Java 11 |
-| JVM target（`Basic`） | Java 21 |
+| JVM target | Java 21 |
+| coreLibraryDesugaring | `com.android.tools:desugar_jdk_libs:2.1.4`（两模块均启用） |
 
-两模块的 `compileOptions` 不一致是有意为之：`Basic` 使用 Java 21 以便后续引入更新的协程与标准库能力，`app` 保持 Java 11 以贴近典型业务工程现状。仓库镜像（腾讯云 + 阿里云）见 `settings.gradle:11-16, 28-33`。
+两模块均统一使用 Java 21（`compileOptions` + `kotlinOptions.jvmTarget`）。仓库镜像（腾讯云 + 阿里云）见 `settings.gradle:11-16, 28-33`。
 
 ## 依赖管理
 
@@ -325,13 +385,13 @@ WindowBuilder()
 
 ## 日期格式化
 
-`DateManager`（`Basic/.../manager/DateManager.kt`）提供 14 个 `DateTimeFormatter` 模板，覆盖纯日期、日期时间、纯时间、年月、国际化、中文、HTTP / RFC 等常见场景。`DateTimeFormatter` 线程安全，可作为全局单例复用：
+`AppDateFormatter` / `DatePatterns`（`Basic/.../manager/`）提供 14 个 `DateTimeFormatter` 模板，覆盖纯日期、日期时间、纯时间、年月、国际化、中文、HTTP / RFC 等常见场景。`DateTimeFormatter` 线程安全，可作为全局单例复用：
 
 ```kotlin
 val now = LocalDateTime.now()
-val stamp = now.format(DateManager.DATE_TIME)        // 2026-06-08 14:23:01
-val iso = now.format(DateManager.ISO_8601)            // 2026-06-08T14:23:01Z
-val cn = now.format(DateManager.CN_DATE)              // 2026年06月08日
+val stamp = now.format(AppDateFormatter.DATE_TIME)        // 2026-06-08 14:23:01
+val iso = now.format(AppDateFormatter.ISO_8601)            // 2026-06-08T14:23:01Z
+val cn = now.format(AppDateFormatter.CN_DATE)              // 2026年06月08日
 ```
 
 | 模板 | 格式 |
@@ -379,7 +439,7 @@ val names = arrayOf(
 | 能力类型 | 落点文件 |
 |---|---|
 | 权限 / 相册 / 拍照等 `ActivityResultLauncher` | `extend/ResultCallbackLauncher.kt` |
-| 日期 `DateTimeFormatter` 模板 | `manager/DateManager.kt` |
+| 日期 `DateTimeFormatter` 模板 | `manager/AppDateFormatter.kt` / `manager/DatePatterns.kt` |
 | 权限中文名常量与扩展 | `utils/ChinesePermission.kt` |
 | 通用扩展函数（Context / Activity / Fragment / Intent / 文件路径 / 列表 / 日期） | `extend/` 目录下按主题拆分的 *Ext.kt |
 | Activity / Fragment / DialogFragment 基类 | `activity/` / `fragment/` / `dialog/` |
