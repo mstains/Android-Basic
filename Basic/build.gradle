@@ -1,8 +1,9 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.detekt)
+    id("checkstyle")
     id("maven-publish")
-
 }
 
 group = 'com.github.mstains' // 替换为你的GitHub用户名
@@ -54,75 +55,6 @@ afterEvaluate{
 
 }
 
-//仓库配置
-//publishing {
-//    // 配置maven 仓库
-//    repositories { RepositoryHandler handler->
-//        handler.mavenLocal()  // 发布到默认的 本地maven 仓库 ，路径： USER_HOME/.m2/repository/
-//    }
-//    // 配置发布产物
-//    publications {PublicationContainer publication->
-//        // 名称可以随便定义，这里定义成 maven，是因为我的 aar 包是发布到 maven 仓库的，所以这里为了见名知义，定义成了 maven
-//        // 任务名称：maven
-////        maven(MavenPublication) {// 容器可配置的信息 MavenPublication
-////            // 依赖 bundleReleaseAar 任务，并上传其产出的aar
-////            afterEvaluate { artifact(tasks.getByName("bundleReleaseAar")) } // 方式一：生成aar包
-////            // artifact "$buildDir/outputs/aar/${project.name}-release.aar" // 方式二：指定生成的aar路径
-////            groupId = "com.mei.http"
-////            artifactId = "myhttp"
-////            version = "1.0.4-SNAPSHOT"
-////        }
-//        // 发布 snapshot 包
-//        debug(MavenPublication) {
-//            afterEvaluate { artifact(tasks.getByName("bundleReleaseAar")) }
-//            groupId = "com.mei.http"
-//            artifactId = "myhttp"
-//            version = "1.0.4-SNAPSHOT"
-//            // pom文件中声明依赖，从而传递到使用方
-//            pom.withXml {
-//                def dependenciesNode = asNode().appendNode('dependencies')
-//                configurations.implementation.allDependencies.each {
-//                    // 避免出现空节点或 artifactId=unspecified 的节点
-//                    if (it.group != null && (it.name != null && "unspecified" != it.name) && it.version != null) {
-//                        println "dependency=${it.toString()}"
-//                        def dependencyNode = dependenciesNode.appendNode('dependency')
-//                        dependencyNode.appendNode('groupId', it.group)
-//                        dependencyNode.appendNode('artifactId', it.name)
-//                        dependencyNode.appendNode('version', it.version)
-//                        dependencyNode.appendNode('scope', 'implementation')
-//                    }
-//                }
-//            }
-//        }
-//        // 发布正式包
-//        release(MavenPublication) {
-//            afterEvaluate { artifact(tasks.getByName("bundleReleaseAar")) }
-//            groupId = "com.mei.http"
-//            artifactId = "myhttp"
-//            version = "1.0.4"
-//
-//            // pom文件中声明依赖，从而传递到使用方
-//            pom.withXml {
-//                def dependenciesNode = asNode().appendNode('dependencies')
-//                configurations.implementation.allDependencies.each {
-//                    // 避免出现空节点或 artifactId=unspecified 的节点
-//                    if (it.group != null && (it.name != null && "unspecified" != it.name) && it.version != null) {
-//                        println "dependency=${it.toString()}"
-//                        def dependencyNode = dependenciesNode.appendNode('dependency')
-//                        dependencyNode.appendNode('groupId', it.group)
-//                        dependencyNode.appendNode('artifactId', it.name)
-//                        dependencyNode.appendNode('version', it.version)
-//                        dependencyNode.appendNode('scope', 'implementation')
-//                    }
-//                }
-//            }
-//        }
-//
-//
-//    }
-//}
-
-
 
 
 android {
@@ -153,6 +85,140 @@ android {
     }
     kotlinOptions {
         jvmTarget = '21'
+    }
+}
+
+// detekt — Kotlin 静态分析，仅启用注释检查规则
+detekt {
+    config = rootProject.files('.detekt.yml')
+    // 不使用默认规则集，只加载 .detekt.yml 中启用的注释规则
+    buildUponDefaultConfig = false
+}
+
+// Checkstyle — Java 静态分析，仅启用 Javadoc 规则
+checkstyle {
+    toolVersion = "10.21.2"
+    configFile = rootProject.file('checkstyle.xml')
+}
+
+// Android 项目需显式创建 Checkstyle task（Gradle 默认不会为 Android 源集创建）
+tasks.register('checkstyleMain', Checkstyle) {
+    description = '检查 Java Javadoc 注释'
+    source = android.sourceSets.main.java.srcDirs
+    include '**/*.java'
+    classpath = files()
+    reports {
+        xml.required.set(true)
+        xml.outputLocation.set(layout.buildDirectory.file('reports/checkstyle/main.xml'))
+    }
+}
+
+// 自定义 task：注释检查（供 android-code-review Section E 调用）
+// 用法：./gradlew :Basic:checkComments -Pscope=full|staged
+tasks.register('checkComments') {
+    group = 'verification'
+    description = '检查 KDoc/Javadoc 注释缺失（scope=full|staged）'
+
+    // 依赖 detekt 和 checkstyle 的检测 task，确保报告已生成
+    // 注意：detekt 和 checkstyleMain 可能因发现违规而失败，但我们需要它们的报告
+    def detektTask = tasks.findByName('detekt')
+    def checkstyleTask = tasks.findByName('checkstyleMain')
+    if (detektTask != null) {
+        dependsOn detektTask
+        // 仅报告不阻塞构建，Section E 由 android-code-review skill 决定是否阻塞
+        detektTask.ignoreFailures = true
+    }
+    if (checkstyleTask != null) {
+        dependsOn checkstyleTask
+        checkstyleTask.ignoreFailures = true
+    }
+
+    doLast {
+        def scope = project.findProperty('scope') ?: 'staged'
+
+        // 收集 scope 范围内的文件路径（用于结果过滤）
+        def scopedFileSet = null
+        if (scope == 'staged') {
+            def process = "git diff --cached --name-only".execute([], project.rootDir)
+            process.waitFor()
+            scopedFileSet = process.text.readLines()*.trim().findAll { it }
+                    .collect { project.rootDir.toPath().resolve(it).toFile().canonicalPath }
+                    .toSet()
+        }
+
+        def detektIssues = []
+        def checkstyleIssues = []
+
+        // 解析 detekt XML 报告
+        def detektReportDir = layout.buildDirectory.dir('reports/detekt').get().asFile
+        def detektXml = new File(detektReportDir, 'detekt.xml')
+        if (detektXml.exists()) {
+            def detektReport = new groovy.xml.XmlSlurper().parse(detektXml)
+            detektReport.file.each { fileNode ->
+                def filePath = fileNode.@name.text()
+                if (scopedFileSet != null && !scopedFileSet.contains(new File(filePath).canonicalPath)) return
+                fileNode.error.each { errorNode ->
+                    // 排除 override 方法（detekt 不支持配置级排除）
+                    def rule = errorNode.@source.text()
+                    def lineNum = errorNode.@line.toInteger()
+                    if (rule.contains('UndocumentedPublicFunction')) {
+                        def srcFile = new File(filePath)
+                        if (srcFile.exists()) {
+                            def srcLine = srcFile.readLines()[lineNum - 1]
+                            if (srcLine =~ /override\s+fun/) return
+                        }
+                    }
+                    detektIssues << [
+                        file: filePath,
+                        line: errorNode.@line.toInteger(),
+                        rule: errorNode.@source.text(),
+                        message: errorNode.@message.text()
+                    ]
+                }
+            }
+        }
+
+        // 解析 Checkstyle XML 报告
+        def checkstyleReportDir = layout.buildDirectory.dir('reports/checkstyle').get().asFile
+        def checkstyleXml = new File(checkstyleReportDir, 'main.xml')
+        if (checkstyleXml.exists()) {
+            def checkstyleReport = new groovy.xml.XmlSlurper().parse(checkstyleXml)
+            checkstyleReport.file.each { fileNode ->
+                def filePath = fileNode.@name.text()
+                if (scopedFileSet != null && !scopedFileSet.contains(new File(filePath).canonicalPath)) return
+                fileNode.error.each { errorNode ->
+                    def msg = errorNode.@message.text()
+                    def category
+                    if (msg.contains('variable')) category = 'E3'
+                    else if (msg.contains('method')) category = 'E2'
+                    else category = 'E1'
+                    checkstyleIssues << [
+                        file: filePath,
+                        line: errorNode.@line.toInteger(),
+                        rule: errorNode.@source.text(),
+                        message: msg,
+                        category: category
+                    ]
+                }
+            }
+        }
+
+        // 输出 JSON 报告
+        def commentsReportDir = layout.buildDirectory.dir('reports/comments').get().asFile
+        commentsReportDir.mkdirs()
+        def result = [
+            scope: scope,
+            detekt: detektIssues,
+            checkstyle: checkstyleIssues,
+            summary: [
+                total: detektIssues.size() + checkstyleIssues.size(),
+                kotlin: detektIssues.size(),
+                java: checkstyleIssues.size()
+            ]
+        ]
+        def outputFile = new File(commentsReportDir, 'check-comments.json')
+        outputFile.text = new groovy.json.JsonBuilder(result).toPrettyString()
+        println "注释检查完成：${detektIssues.size()} Kotlin + ${checkstyleIssues.size()} Java → ${outputFile.absolutePath}"
     }
 }
 

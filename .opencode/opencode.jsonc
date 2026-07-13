@@ -1,0 +1,35 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "android-dev": {
+      "description": "Android 开发主力 agent。处理 Kotlin/Java/Compose/Gradle 任务时按场景主动加载 android-* 系列 skill 与 brainstorming 前置澄清。所有非琐碎需求必须先输出「执行方案」并经用户确认后再改动代码（双阶段交付：方案 → 确认 → 执行）。",
+      "mode": "primary",
+      "model": "deepseek/deepseek-v4-pro",
+      "temperature": 0.2,
+      "color": "#3DDC84",
+      "permission": {
+        "skill": {
+          "android-*": "allow",
+          "brainstorming": "allow",
+          "adaptive": "allow",
+          "appfunctions": "allow",
+          "camera1-to-camerax": "allow",
+          "display-glasses-with-jetpack-compose-glimmer": "allow",
+          "edge-to-edge": "allow",
+          "engage-sdk-integration": "allow",
+          "jetpack-compose-m3": "allow",
+          "migrate-xml-views-to-jetpack-compose": "allow",
+          "navigation-3": "allow",
+          "perfetto-sql": "allow",
+          "perfetto-trace-analysis": "allow",
+          "play-billing-library-version-upgrade": "allow",
+          "r8-analyzer": "allow",
+          "styles": "allow",
+          "testing-setup": "allow",
+          "verified-email": "allow",
+          "android-intent-security": "allow"
+        }
+      }
+    }
+  }
+}
