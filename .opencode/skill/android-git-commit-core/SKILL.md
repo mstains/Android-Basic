@@ -2,13 +2,13 @@
 name: android-git-commit-core
 description: >
   Android 项目 Git 提交核心流程：变更分析、Conventional Commit 生成、git add/commit。
-  是 v3 安全流程的 Step 3 调用目标,本身不包含敏感扫描或 lint,
+  是安全提交编排流程的提交环节调用目标,本身不包含敏感扫描或 lint,
   代码审查由调用方在调用前完成(android-code-review,单次统一报告)。
   无副作用。
 license: MIT
 metadata:
   author: mstains
-  last-updated: '2026-06-30'
+  last-updated: '2026-07-17'
   keywords:
   - android
   - git
@@ -20,8 +20,8 @@ metadata:
 
 ## 前置检查 (v2 流程约定)
 
-本 skill 在 Step 3 提交前,**依赖**调用方完成以下检查:
-- `android-code-review` 代码审查 (Step 2,四节统一报告)
+本 skill 在提交前,**依赖**调用方完成以下检查:
+- `android-code-review` 代码审查 (Step 1, Sections A-D)
 
 本 skill 内部**不重复**资源检查,职责单一。完整 lint 检查不在本流程,由 CI 流水线负责。
 
@@ -31,7 +31,6 @@ metadata:
 Step 1: 变更分析 → 缓存 STAGED/UNSTAGED/UNTRACKED
 Step 2: 推断 scope + commit type → 生成 commit message
 Step 3: git add -A + git commit
-Step 4: pre-commit hook 失败处理
 ```
 
 ---
@@ -67,14 +66,15 @@ echo "$STATUS_SHORT"
 ### 2.1 自动推断 scope
 
 ```bash
-SCOPE=$(echo "$STAGED" | grep -E '^[AM]\s+' | cut -f2 |
-  grep -E '\.(kt|java|xml)$' |
+# 合并暂存区和工作区变更，确保不论是否提前 staging 都能正确推断
+ALL_CHANGED=$( (echo "$STAGED"; echo "$UNSTAGED") | grep -E '^[AM]\s+' | cut -f2 | sort -u)
+SCOPE=$(echo "$ALL_CHANGED" | grep -E '\.(kt|java|xml)$' |
   sed -nE 's|.*/([^/]+)/src/.*|\1|p' |
   sort | uniq -c | sort -rn | head -1 |
   awk '{print $2}')
 
 if [ -z "$SCOPE" ]; then
-  SCOPE=$(echo "$STAGED" | grep -E '^[AM]\s+' | cut -f2 | head -1 | cut -d'/' -f1)
+  SCOPE=$(echo "$ALL_CHANGED" | head -1 | cut -d'/' -f1)
 fi
 
 SCOPE=${SCOPE:-app}
@@ -114,19 +114,3 @@ SCOPE=${SCOPE:-app}
 git add -A
 git commit -m "$COMMIT_MSG"
 ```
-
----
-
-## Step 4：pre-commit hook 失败处理
-
-```bash
-if [ $? -ne 0 ]; then
-  if git diff --name-only | grep -q .; then
-    echo "pre-commit hook 修改了文件，重新暂存..."
-    git add -A
-    GIT_EDITOR=true git commit -m "$COMMIT_MSG"
-  fi
-fi
-```
-
-若仍失败，展示 hook 错误信息，停止流程。

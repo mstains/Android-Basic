@@ -6,7 +6,7 @@ description: >
 license: MIT
 metadata:
   author: mstains
-  last-updated: '2026-06-02'
+  last-updated: '2026-07-17'
   keywords:
   - android
   - git
@@ -25,6 +25,7 @@ Step 2: 远端连接检查
 Step 3: git fetch + git pull --rebase
 Step 4: 冲突处理（若有）
 Step 5: git push
+Step 6: 生成 MR 链接（推送成功后）
 ```
 
 ---
@@ -33,6 +34,9 @@ Step 5: git push
 
 ```bash
 REMOTE_URL=$(git remote get-url origin)
+# 从 remote URL 提取 host，适配 GitHub/GitLab/自建平台
+HOST=$(echo "$REMOTE_URL" | sed -nE 's|.*@([^:]+):.*|\1|p')
+HOST=${HOST:-github.com}
 if echo "$REMOTE_URL" | grep -q '^git@'; then
   echo "远端使用 SSH 协议"
   for key in ~/.ssh/id_rsa ~/.ssh/id_ed25519 ~/.ssh/id_ecdsa; do
@@ -46,7 +50,7 @@ if echo "$REMOTE_URL" | grep -q '^git@'; then
       fi
     fi
   done
-  ssh -T git@github.com 2>&1 || echo "⚠️ 认证失败"
+  ssh -T -o ConnectTimeout=5 -o BatchMode=yes "git@$HOST" 2>&1 || echo "⚠️ 认证失败"
 fi
 ```
 
@@ -58,7 +62,7 @@ fi
 # 检测当前是否在 macOS 且 SSH 协议下
 if [ "$(uname)" = "Darwin" ] && echo "$REMOTE_URL" | grep -q '^git@'; then
   # 先测试一次认证
-  if ! ssh -T -o ConnectTimeout=5 -o BatchMode=yes git@github.com &>/dev/null; then
+  if ! ssh -T -o ConnectTimeout=5 -o BatchMode=yes "git@$HOST" &>/dev/null; then
     echo "⚠️ SSH 认证失败,尝试 macOS 自动回退..."
     
     # 路径 A: 当前 agent 是 launchd 全局 agent (默认 macOS)
@@ -81,7 +85,7 @@ if [ "$(uname)" = "Darwin" ] && echo "$REMOTE_URL" | grep -q '^git@'; then
     fi
     
     # 重试认证
-    if ssh -T -o ConnectTimeout=5 -o BatchMode=yes git@github.com &>/dev/null; then
+    if ssh -T -o ConnectTimeout=5 -o BatchMode=yes "git@$HOST" &>/dev/null; then
       echo "✓ SSH 认证成功 (回退后)"
     else
       echo "🔴 SSH 认证仍失败,停止流程"
@@ -106,7 +110,7 @@ fi
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if ! git ls-remote --exit-code origin "$BRANCH" &>/dev/null; then
   echo "⚠️ 无法连接远端仓库，请检查："
-  echo "  1. SSH key 是否配置（ssh -T git@github.com）"
+  echo "  1. SSH key 是否配置（ssh -T git@<your-host>）"
   echo "  2. 远端仓库地址是否正确（git remote -v）"
   echo "  3. 网络代理是否正常"
   exit 1
@@ -200,7 +204,72 @@ GIT_EDITOR=true git pull --rebase origin "$BRANCH"
 
 然后回到 Step 4 冲突检查。连续失败 2 次以上，建议用户手动处理。
 
-## 变更记录
+---
 
-- 2026-06-03: Step 1.1 新增 macOS 自动回退链。SSH 认证失败时,launchd agent 提示用户终端操作,本地 agent 自动从 Keychain 加载,避免阻塞等待密码输入。
-- 2026-06-02: 初版,从 android-git-commit 拆出,作为独立 sync skill。
+## Step 6：生成 MR 链接
+
+> 仅推送成功后执行（由 `android-git-commit` Step 5 编排调用）。
+> `--no-push` 或推送失败时跳过本步骤。
+
+```bash
+# 获取远程仓库 HTTPS URL（SSH 协议自动转换）
+REMOTE_URL=$(git remote get-url origin)
+HTTPS_URL=$(echo "$REMOTE_URL" |
+  sed 's|^git@\(.*\):|https://\1/|' |
+  sed 's|\.git$||')
+
+# 从 remote URL 提取 host，用于平台判定
+HOST=$(echo "$REMOTE_URL" | sed -nE 's|.*@([^:]+):.*|\1|p')
+HOST=${HOST:-$(echo "$REMOTE_URL" | sed -nE 's|https?://([^/]+)/.*|\1|p')}
+
+# 自动检测主分支名
+if git show-ref --verify --quiet refs/heads/master; then
+  TARGET_BRANCH="master"
+elif git show-ref --verify --quiet refs/heads/main; then
+  TARGET_BRANCH="main"
+elif git ls-remote --exit-code origin master &>/dev/null; then
+  TARGET_BRANCH="master"
+elif git ls-remote --exit-code origin main &>/dev/null; then
+  TARGET_BRANCH="main"
+else
+  echo "⚠️ 未检测到主分支（master/main），MR 链接生成失败"
+  exit 0
+fi
+
+SOURCE_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# 根据域名判断平台，生成对应 MR 链接
+case "$HOST" in
+  github.com)
+    MR_URL="${HTTPS_URL}/compare/${TARGET_BRANCH}...${SOURCE_BRANCH}"
+    ;;
+  *gitlab*)
+    MR_URL="${HTTPS_URL}/-/merge_requests/new?merge_request[source_branch]=${SOURCE_BRANCH}&merge_request[target_branch]=${TARGET_BRANCH}"
+    ;;
+  *)
+    echo ""
+    echo "⚠️ 未识别的代码托管平台 ($HOST)，请手动创建 MR"
+    echo "   仓库地址: ${HTTPS_URL}"
+    exit 0
+    ;;
+esac
+
+echo ""
+echo "🔗 创建 Merge Request:"
+echo "   ${MR_URL}"
+
+# 如果 source = target（误推 master），额外提示
+if [ "$SOURCE_BRANCH" = "$TARGET_BRANCH" ]; then
+  echo "   ⚠️ 源分支与目标分支相同，请确认是否误推 master"
+fi
+```
+
+### Step 6 边界行为
+
+| 场景 | 行为 |
+|------|------|
+| push 成功 | 生成并展示 MR 创建链接 |
+| push 失败 | 跳过本步骤 |
+| `--no-push` 或推送失败 | 跳过本步骤（`android-git-commit` 编排层控制） |
+| target = source（如误推 master） | 仍展示链接，附加警告提示 |
+| 未检测到主分支 | 输出提示，跳过 MR 链接生成 |

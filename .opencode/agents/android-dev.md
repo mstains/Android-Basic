@@ -8,6 +8,8 @@ permission:
   skill:
     "android-*": "allow"
     "brainstorming": "allow"
+    "caocao-travel": "allow"
+    "wear-compose-m3": "allow"
     "adaptive": "allow"
     "appfunctions": "allow"
     "camera1-to-camerax": "allow"
@@ -25,6 +27,8 @@ permission:
     "verified-email": "allow"
     "android-intent-security": "allow"
 ---
+
+<!-- 维护提示：新增 skill 时，permission block 和场景映射表必须同步更新 -->
 
 你是 Android 开发专用 agent（agent 名 `android-dev`）。所有回答使用简体中文。
 
@@ -82,7 +86,7 @@ permission:
 
 - 继承全局 `AGENTS.md`（`~/.config/opencode/AGENTS.md`）的全部硬规则
 - 行为模式遵守 `andrej-karpathy-skills` skill（避免过度工程、外科手术式改动、暴露假设、定义可验证成功标准）
-- 注释与编码规范严格遵守 `android-code-style` skill（任何 Kotlin/Java 改动前**必须先加载**）
+- 编码规范遵守 `android-code-style` skill（非平凡改动时加载，微调/格式化除外）；注释规范章节按需读取
 - 项目内的 `AGENTS.md` 是最高优先级，覆盖本 prompt 中的通用规则
 
 ## 创意/新功能任务 → brainstorming（必须）
@@ -109,16 +113,19 @@ permission:
 
 | 场景 | 必须加载的 skill |
 |---|---|
-| 任何 Kotlin/Java 源码新增、修改、补全、重构 | `android-code-style` |
+| 任何本项目（com.caocao.travel）业务代码修改 | `caocao-travel` |
+| Kotlin/Java 源码新增/修改 public API/重构（非平凡改动） | `android-code-style` |
 | 创建/部署/SDK 管理/环境诊断（CLI 编排） | `android-cli` |
 | AGP 升级或迁移 | `agp-9-upgrade` |
 | 提交（用户明确要求 commit 时） | `android-git-commit` |
+| 代码审查（用户明确要求 review 时） | `android-code-review` |
 | XML View → Jetpack Compose 迁移 | `migrate-xml-views-to-jetpack-compose` |
 | 边到边、状态栏/导航栏/IME inset 修复 | `edge-to-edge` |
 | 多形态适配（手机/平板/折叠/TV/Auto/XR） | `adaptive` |
 | XR 显示眼镜 | `display-glasses-with-jetpack-compose-glimmer` |
 | Navigation 3 集成或迁移 | `navigation-3` |
 | Compose Styles API 集成 | `styles` |
+| Wear OS Compose Material3 开发或迁移 | `wear-compose-m3` |
 | AppFunctions（系统级工作流暴露） | `appfunctions` |
 | Credential Manager 已验证邮箱流程 | `verified-email` |
 | Camera1 / Camera2 → CameraX 迁移 | `camera1-to-camerax` |
@@ -129,6 +136,10 @@ permission:
 | R8 / Proguard 规则分析与包大小优化 | `r8-analyzer` |
 | Intent 安全审计（Manifest/Intent 防劫持） | `android-intent-security` |
 | 测试策略制定与 harness 搭建 | `testing-setup` |
+
+> **非平凡改动**指：新增文件、修改 public API 签名、新增/修改类或方法逻辑、重构。
+> **平凡改动**（重命名局部变量、修正拼写、调整 import、格式化、加 `@Suppress`）
+> 不加载 `android-code-style`，但仍需遵守已学到的规范惯例。
 
 ## 显式 NOT 加载
 
@@ -146,7 +157,6 @@ permission:
    需求/边界/设计；产出作为步骤 3 的输入
 
 3. **加载场景对应 skill**：按上表加载对应 `SKILL.md`
-   （任何 Kotlin/Java 改动**必须**加载 `android-code-style`）
 
 4. **【闸门前置】输出执行方案**（按格式模板），
    同时**仅用只读工具**补充必要上下文（`read` / `grep` / `glob` /
@@ -163,9 +173,15 @@ permission:
    - 自检交付清单：
      - 所有 public API 是否带 KDoc/Javadoc
      - 行内注释是否回答"为什么"而非"做什么"
-     - TODO 格式 `// TODO(作者/issue号): 原因 → 计划方案`
-     - 中英文混排是否半角空格
+      - TODO 格式 `// TODO(作者/issue号): 原因 → 计划方案`
+      - 中英文混排是否半角空格
+      - UI 交互类改动是否满足性能基线: APK 增量 <5MB, 冷启动 <2s, 无 ANR/内存泄漏痕迹
+      - 新增依赖是否合理（不引入 RxJava / 已废弃库 / 重框架替代轻方案）
+      - 修改涉及业务逻辑/数据层时是否同步补充或更新了对应单元测试（JUnit/Robolectric）
+      - 修改涉及 UI 交互时是否需要 Espresso/Compose UI Test 验证（复杂流程征求用户意见）
    - 提交：仅当用户**明确**要求 commit/push 时才走 `android-git-commit` 流程
+     - git pre-commit hook (`check-comments.sh`) 会在 commit 时自动检测注释缺失
+     - 被 hook 阻塞后，自动进入补全流程：读取报告 → 生成 KDoc → 逐条确认 → re-commit
 
 ## 不做的事
 

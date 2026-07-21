@@ -1,165 +1,297 @@
 ---
 name: android-git-commit
 description: >
-  Android 项目 Git 安全提交编排器。按"先同步,再单次敏感扫描,最后提交推送"多步流程编排。
-  敏感扫描在 pull 之后执行,单次覆盖本地 + 上游合并状态。lint 检查不在本地流程中,由 CI 负责。
-  子 skill 分为:android-git-commit-core(变更分析 + commit)、
-  android-code-review(敏感扫描 + 资源与布局规范 + 代码异常审查 + 代码规范审查 + 注释合规检查,拆为五节)、
-  android-git-commit-sync(拉取 + 冲突 + 推送)。
-  v3.1 新增:Section E 注释缺失 → opencode 自动补全 → 人确认,拒绝则回退硬阻塞。
+  Android 项目 Git 安全提交编排器。按"审查→注释→同步→提交→推送→MR"六步流程编排。
+  默认推送并展示 MR 链接。Step 1 代码审查分 Phase A(安全,只报不改)/B(规范自修,统一确认)/C(异常自修,逐条确认)。
+  子 skill 分为:android-code-review(代码审查+注释检测)、
+  android-git-commit-core(变更分析+commit)、android-git-commit-sync(同步+推送)。
+  v7 变更:Section B/D 可修项 AI 自动修复,Section C 可修项逐条确认修复,新增 --skip-auto-fix。
 license: MIT
 metadata:
   author: mstains
-  last-updated: '2026-07-02'
+  last-updated: '2026-07-21'
   keywords:
   - android
   - git
   - commit
-  - sensitive-scan
-  - security-gate
-  - v3
+  - code-review
+  - kdoc
+  - javadoc
+  - detekt
+  - v7
+---
+# Android Git 提交（v7 安全流程）
+
+## 默认行为
+
+- **默认推送** + 展示 MR 链接。用 `--no-push` 跳过推送。
+- 子 skill 仅在被调用时加载，避免上下文膨胀。
+- 每一步按固定模板输出，不即兴发挥。
+
+## 标准流程（4 步，不可跳过）
+
+Step 1 内部有三个子阶段（Phase A → Phase B → Phase C），由 android-code-review 自动编排：
+
+```
+Step 1  代码审查       → android-code-review
+                           Phase A: Section A 安全扫描（只报不改，硬阻塞）
+                           Phase B: Section B+D 规范自修（AI 修复 → 统一 diff → 一次性确认）
+                           Phase C: Section C 异常自修（AI 逐条修复 → 展示 diff+理由 → 逐条确认）
+Step 2  注释检测       → android-code-review Section E（detekt + checkstyle → AI 补全 KDoc）
+Step 3  同步远端       → android-git-commit-sync（拉取远端、处理冲突）
+Step 4  提交           → android-git-commit-core（变更分析 + 生成 message + commit）
+Step 5  推送           → android-git-commit-sync（推送）
+Step 6  MR 链接       → android-git-commit-sync（生成 MR 链接）
+```
+
+## Step 1：代码审查
+
+加载 android-code-review，按 Phase A → Phase B → Phase C 顺序执行（范围：`git diff HEAD --name-only` + `git ls-files --others --exclude-standard`）。
+
+### Phase A：安全扫描
+
+```
+执行 Section A 检查
+  → 无命中：进入 Phase B
+  → 有命中：硬阻塞，展示报告，流程终止
+```
+
+### Phase B：规范自修
+
+```
+执行 Section B + D 可修项检查
+  → 无命中：进入 Phase C
+  → 有命中：AI 逐条自动修复 → 展示统一 git diff → 询问确认
+     y → 接受全部修复，git add → 进入 Phase C
+     N / skip → 跳过 Phase B，进入 Phase C
+```
+
+### Phase C：异常自修
+
+```
+执行 Section C 可修项检查
+  → 无命中：进入 Step 2
+  → 有命中：AI 逐条修复 → 逐条展示 diff + 理由 → 逐条询问
+     y → 接受此条修改
+     N → 跳过此条，继续下一条
+     skip → 跳过整个 Phase C，进入 Step 2
+```
+
+### 固定输出
+
+```
+## Step 1: 代码审查
+
+🔴 Phase A 安全扫描 — 无安全违规 ✅
+
+🟢 Phase B 规范自修 — 8 处修复，涉及 6 个文件
+   → 用户已确认，git add 完成
+
+🟡 Phase C 异常自修 — 3 项修复
+   C2: !! 强制解包 → ✅ 已修复
+   C4: requireActivity() → ⏭ 跳过
+   C8: lateinit var → ✅ 已修复
+```
+
+### 边界
+
+| 场景 | 行为 |
+|------|------|
+| Phase A 命中 | **硬阻塞**，流程终止 |
+| 无 Kotlin/Java 文件变更 | 输出 `跳过（无 Java/Kotlin 变更）`，进入 Step 2 |
+| `--skip-code-review` | 跳过本步（含 Phase A/B/C + Step 2） |
+| `--skip-auto-fix` | Phase B/C 仅展示报告不修复（Phase A 仍硬阻塞） |
+| `--dry-run` | Phase A 展示报告不阻塞；Phase B/C 展示修复预览不写文件 |
+| Phase B 用户回复 N | 跳过 Phase B，继续 Phase C |
+| Phase C 用户回复 skip | 跳过 Phase C，进入 Step 2 |
+
 ---
 
-# Android Git 提交 (v3 安全流程)
-
-## 标准流程 (强制顺序)
-
-| Step | 动作 | 调用 | 闸门类型 |
-|------|------|------|----------|
-| 1 | 拉取远端 + 冲突检查 | `sync.step-1~4` | 软阻塞 |
-| 2 | 代码审查 (五节合一,单次报告) | `code-review` (scope=full) | 硬阻塞 |
-| 2.5 | 注释自动补全 (仅当 Section E 有命中) | opencode 交互 | 软阻塞→硬阻塞 |
-| 3 | 本地 commit | `core.step-1~3` | - |
-| 4 | push (需 --push) | `sync.step-5` | - |
-
-## 冲突循环
+## Step 2：注释检测
 
 ```
-Step 1 冲突 → 报告 → 停止
-   ↓
-用户解决冲突 (git rebase --continue)
-   ↓
-回到 Step 2 重新审查 (防御性,确认解决过程未引入敏感或违规)
-   ↓
-Step 2 → Step 2.5 (如有) → Step 3 → Step 4
+加载 android-code-review
+执行 Section E：
+  ./gradlew detekt checkstyleJava
+  检测通过 → 进入 Step 3
+  检测失败 → agent 从 detekt/checkstyle 输出 grep 提取违规 → 逐条补全 KDoc → git add 补全文件
 ```
 
-> v3 简化: 冲突解决后无需重跑 Step 1(远端状态未变,rebase --continue 已处理冲突)。
-
-## Step 2.5: 注释自动补全 (opencode 层)
-
-### 触发条件
-
-当 Step 2 `code-review` 报告中 **Section E 有命中** 时触发。Section A-D 无命中 + Section E 有命中时，**跳过** Step 2 的硬阻塞闸门，直接进入本步骤。
-
-### 执行流程
+### 固定输出
 
 ```
-Step 2 报告展示 → Section E 共 x 项缺失
-   ↓
-是否启用自动补全？[Y/n]
-   ├── N → 跳过,Section E 回退硬阻塞,用户手动补全
-   └── Y (默认) → 启动自动补全
-         ↓
-      opencode 逐文件处理:
-        ① 读取文件,定位缺失 KDoc 的声明
-        ② 分析函数体/类体/调用链,理解代码语义
-        ③ 按 android-code-style §2 模板生成 KDoc/Javadoc
-        ④ 展示 diff (原代码 vs 补全后),逐条询问用户
-              ├── y → 应用 diff,写入文件
-              ├── n → 该项回退硬阻塞,用户自行补全
-              └── s (skip) → 跳过该项,继续下一个
-        ⑤ 全部文件处理完毕
-              ├── 全部通过 → 放行,进入 Step 3
-              └── 有拒绝项 → 展示拒绝清单,停止,等待修复
+## Step 2: 注释检测
+✅ detekt 通过  ✅ checkstyle 通过
+
+# 或
+
+## Step 2: 注释检测
+⚠️ detekt 检测到 N 处 KDoc 缺失
+→ 补全 Item.kt (3/3) ✅
+→ 补全 UserDto.kt (1/1) ✅
+→ 已补全 4 处，git add 完成
 ```
 
-### 自动补全规范
-
-opencode 生成注释时**必须**遵循 `android-code-style` §2 模板规范:
-- **class/interface/object**: 含用途 + 补充说明 + @param + @property + @constructor
-- **fun**: 含用途 + 补充说明 + @param + @return + @throws + @see
-- **val/var**: 含用途 + 补充说明
-- **语言**: 简体中文 + 技术术语保留英文
-- **格式**: 参见 `android-code-style` §2.1-§2.5
-
-### 边界行为
+### 边界
 
 | 场景 | 行为 |
 |------|------|
-| Section E 检测到 `private` 声明 (误报) | opencode 读取后识别为 private,标注"跳过(非 public)",不生成 |
-| Section E 检测到 `override` 方法 (误报) | opencode 读取后识别为 override,标注"跳过(override)",不生成 |
-| 函数体为空 / 仅 TODO() | 标注"无法推断语义,跳过",该项回退硬阻塞 |
-| 文件已被外部修改 (diff 失败) | 停止当前项,提示冲突,继续下一项 |
-| 用户拒绝全部补全 | 等同 Section E 硬阻塞,用户手动补全后重新提交 |
+| 无 Kotlin/Java 文件变更 | 输出 `跳过`，进入 Step 3 |
+| `--skip-code-review` | 跳过本步 |
+| 用户拒绝全部补全 | 硬阻塞，手动补全后重新触发 |
+| 函数体为空 / 仅 TODO() | 标注"无法推断，跳过"，该项回退硬阻塞 |
 
-### 可选开关
+---
 
-- `--skip-comment-autofix`: 跳过 Step 2.5,Section E 命中直接按硬阻塞处理
+## Step 3：同步远端
 
-### 性能特征
+```
+加载 android-git-commit-sync
+执行同步流程（SSH 检查 → 远端检查 → fetch + pull --rebase → 冲突处理）
+```
 
-- bash 检测 (Step 2 内): +< 3 秒 (grep + sed 上下文检查)
-- opencode 自动补全: 取决于文件数量和复杂度,通常每文件 2-5 秒
+### 固定输出
 
-## 边界行为
+```
+## Step 3: 同步远端
+✅ 已同步最新代码，无冲突
+
+# 或
+
+## Step 3: 同步远端
+⚠️ 合并冲突
+冲突文件:
+  app/src/main/java/.../OrderActivity.kt (行 42-52)
+  → 本地: 添加退款按钮逻辑
+  → 远端: 重构支付模块
+
+建议:
+  A) 接受远端: git checkout --theirs <file>
+  B) 接受本地: git checkout --ours <file>
+  C) 手动合并（推荐）
+
+解决后继续: git add <file> && git rebase --continue
+```
+
+### 边界
 
 | 场景 | 行为 |
 |------|------|
-| Step 2 (A-D) 发现敏感信息 / 代码违规 | **阻塞** (统一报告,一次确认) |
-| Step 2 (E) 发现注释缺失 | **移交 Step 2.5** opencode 自动补全 |
-| Step 2.5 用户拒绝自动补全 | 该项回退**硬阻塞**,等待手动修复 |
-| 本地分支无 upstream tracking | **跳过 Step 1** (E4=A) |
-| pre-commit hook 失败 | **自动重试一次**,仍失败停止 |
-| 推送被拒 | **不 --force**,询问后 rebase 重试 |
+| 无 upstream tracking | 输出 `跳过（本地分支无 upstream）`，进入 Step 4 |
+| 合并冲突 | **停止流程**，等用户解决。解决后从 Step 1 重新执行（仅扫描冲突文件） |
+| 冲突后恢复 | `git rebase --abort` 可取消合并 |
 
-### E4 边界定义 (v2 实战改进, 2026-06-03)
+---
 
-**E4 = "本地分支无 upstream tracking"**,**严格按**以下命令判断:
+## Step 4：提交
 
-```bash
-if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' &>/dev/null; then
-  # 有 upstream → 走 Step 1 (fetch + pull --rebase)
-else
-  # 无 upstream → E4 触发,跳过 Step 1
-fi
+```
+加载 android-git-commit-core
+执行提交流程（变更分析 → commit message → git commit）
 ```
 
-**严禁使用** `git ls-remote --exit-code origin <branch>` 判断"远端分支是否存在":
-- `ls-remote` 在某些网络/协议条件下会误报"远端不存在"
-- 远端是否存在同名分支 ≠ 本地是否有 upstream tracking
-- 这是两个独立概念,只有后者决定 `git pull --rebase` 能否执行
+### 固定输出
+
+使用 core 生成的 message，按以下格式展示：
+
+```
+## Step 4: 提交
+feat(order): 添加退款功能
+
+变更:
+  新增: OrderRefundActivity.kt
+  修改: OrderViewModel.kt    添加 refundOrder() 方法
+  删除: OldCouponHelper.kt    已废弃，功能迁移
+
+✅ 已提交: a1b2c3d
+```
+
+---
+
+## Step 5：推送
+
+```
+加载 android-git-commit-sync
+执行推送（git push origin <branch>）
+```
+
+### 固定输出
+
+```
+## Step 5: 推送
+✅ 推送成功 → origin/feature/order-refund
+
+# 推送失败时
+⚠️ 推送被拒（远端有新提交）
+→ 执行 git fetch && git pull --rebase
+→ 如有冲突，参照 Step 3 处理
+```
+
+### 边界
+
+| 场景 | 行为 |
+|------|------|
+| `--no-push` | 跳过本步 + Step 6 |
+| 推送被拒 | 拉取 rebase，送回 Step 3 冲突处理 |
+
+---
+
+## Step 6：MR 链接
+
+```
+加载 android-git-commit-sync
+执行 MR 链接生成
+```
+
+### 固定输出
+
+```
+## Step 6: MR 链接
+🔗 https://gitlab.com/caocao/travel/-/merge_requests/new?...source_branch=feature/xxx&target_branch=master
+```
+
+### 边界
+
+| 场景 | 行为 |
+|------|------|
+| `--no-push` | 跳过本步 |
+| 推送失败 | 跳过本步 |
+| source = target（如误推 master） | 仍展示链接，附加 `⚠️ 源分支与目标分支相同，请确认` |
+
+---
+
+## 冲突恢复流程
+
+当 Step 3 出现冲突、用户手动解决后，执行增量审查：
+
+```
+用户解决冲突 → git add <files> → git rebase --continue
+  ↓
+从 Step 1 重新执行（仅扫描冲突文件）
+  git diff --diff-filter=U + 解决后的 diff
+  ↓
+通过 → Step 2 → ... → Step 6
+```
+
+---
 
 ## 可选开关
 
-- `--push`                  : 启用 Step 4 (默认不推)
-- `--skip-code-review`      : 跳过 Step 2 代码审查 (含 Section E)
-- `--skip-comment-autofix`  : 跳过 Step 2.5,Section E 命中直接按硬阻塞处理
-- `--dry-run`               : Step 2 仅展示审查报告不阻塞
-- `--scope=staged`          : Step 2 仅扫描已暂存文件 (默认 full)
+| 开关 | 作用 |
+|------|------|
+| `--no-push` | 跳过 Step 5 推送 + Step 6 MR 链接 |
+| `--skip-code-review` | 跳过 Step 1 代码审查（含 Phase A/B/C）+ Step 2 注释检测 |
+| `--skip-auto-fix` | Phase B/C 仅展示违规报告，不执行自动修复（Phase A 仍硬阻塞） |
+| `--dry-run` | Phase A 展示报告不阻塞；Phase B/C 展示修复预览不实际写文件 |
 
-## 性能特征
+---
 
-- Step 1 拉取: 取决于网络,通常 1~10 秒;无冲突时直接通过
-- Step 2 代码审查: grep 级全项目扫描,通常 < 12 秒 (含 Section E grep+sed 上下文检查)
-- Step 2.5 注释自动补全: 取决于命中文件数,通常每文件 2-5 秒
-- **总闸门耗时**: ~15 秒 (无 Section E 命中) / +文件数×5 秒 (含自动补全)
-- **lint 不在本地流程**,完整静态分析由 CI 流水线负责
+## 流程终止条件
 
-## 子 skill 速查
-
-| Skill | 职责 | 在本流程中被调用 |
-|-------|------|------------------|
-| `android-git-commit-core` | 变更分析 + commit message + commit | Step 3 |
-| `android-code-review` | Section A-E 五节合一代码审查 | Step 2 (单次调用,统一报告) |
-| `android-git-commit-sync` | 拉取 + 冲突 + 推送 | Step 1, 4 |
-
-## 变更记录
-
-- 2026-07-02: **v3.1 注释自动补全**。新增 Step 2.5: 当 `code-review` Section E 检测到注释缺失时,opencode 自动读取代码生成 KDoc,展示 diff 逐条确认。拒绝则回退硬阻塞。新增 `--skip-comment-autofix` 开关。审查从四节扩展至五节 (Section A-E)。
-- 2026-06-30: **Step 重编号 + 审查合并**。Step 从 2→1→4a~4e 重排为 1→2→3→4。Step 2 由分节调用改为单次 `code-review` 调用 (四节统一报告)。新增 `--dry-run` 开关。
-- 2026-06-30: **适配 android-code-review 重构**。`android-git-commit-review` 重命名为 `android-code-review`,Section A-D 四节并入流程。
-- 2026-06-03: **v3 流程优化**。重排顺序为 2→1→4a→4b→4c。Step 2 (拉取) 提前,Step 1 (敏感扫描) 在 post-pull 状态单次执行,取消 v2 的 Step 3 重复扫描。冲突循环回程保持"回到 Step 1"。
-- 2026-06-03: 升级为 v2 安全流程。Step 1/3 全项目敏感扫描为强制闸门,Step 2 冲突回到 Step 1,Step 4 默认不推送。**移除 lint 检查**,完整静态分析移交 CI。
-- 2026-06-03: E4 边界定义改写。明确"无 upstream tracking"判定标准,严禁用 `git ls-remote` 判断远端分支存在性。
-- 2026-06-02: 拆分为 core/review/sync 三个独立 skill。
+| 条件 | 终止点 |
+|------|--------|
+| Phase A 命中安全违规 | 立即终止 |
+| Phase B/C 用户拒绝全部修复 | 跳过对应 Phase，继续后续流程 |
+| Step 2 用户拒绝全部补全 | 停止，手动补全后重新触发 |
+| Step 3 合并冲突 | 停止，等用户解决后按冲突恢复流程继续 |
+| Step 5 推送被拒 2 次以上 | 停止，建议用户手动处理 |

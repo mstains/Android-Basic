@@ -225,8 +225,3 @@ android-git-branch → android-git-commit (v3 流程)
 ```
 
 两者正交，互不耦合。分支创建不触发任何提交流程。
-
-## 变更记录
-
-- 2026-06-30: 新增 master 分支保护规则。禁止直接 push/commit 至 master, 强制 PR 合并。
-- 2026-06-30: 初版。从 android-git-commit 拆出为独立 skill，支持 6 类分支命名，基分支硬阻塞，仅本地创建。
