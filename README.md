@@ -43,43 +43,60 @@ JitPack 只发布 `:Basic` 模块的 AAR + sources jar，不含 `app` 演示模�
 |---|---|---|
 | `android-dev` | primary | Android 开发主力 agent。处理 Kotlin/Java/Compose/Gradle 任务时按场景主动加载对应 skill，采用「方案 → 确认 → 执行」双阶段交付模式。详见 `.opencode/agents/android-dev.md` |
 
-### 自定义 Skill（`.opencode/skill/`）
+### 如何使用 Skill
 
-以下 6 个 skill 由项目维护，覆盖编码规范、代码审查、Git 工作流等核心流程：
+Skill 是 OpenCode 的专业化指令集，由 `android-dev` agent 自动按「场景 → Skill」强映射规则加载，**无需手动指定**——你在对话中用自然语言描述需求即可：
 
-| Skill | 用途 |
-|---|---|
-| `android-code-style` | Kotlin/Java 编码规范全集（注释、资源命名、代码命名、架构约定、UI 规范） |
-| `android-code-review` | 提交前代码审查编排器（敏感扫描 → 资源规范 → 代码异常 → 代码规范 → 注释合规，五节硬阻塞） |
-| `android-git-commit` | Git 安全提交编排器（同步 → 扫描 → 提交 → 推送） |
-| `android-git-commit-core` | Git 提交核心流程（变更分析 + Conventional Commit 生成） |
-| `android-git-commit-sync` | Git 同步流程（fetch/pull --rebase/冲突报告/push） |
-| `android-git-branch` | Git 分支创建（6 类标准化分支命名，基分支硬阻塞） |
+| 你这样说 | agent 自动加载 |
+|---------|-------------|
+| "帮我提交代码" | `android-git-commit`（编排审查 → 注释 → 提交 → 推送全流程） |
+| "这段代码有什么问题" | `android-code-review`（执行安全/规范/异常/注释五项检查） |
+| "注释应该怎么写" | `android-code-style`（编码规范全集） |
+| "迁移到 CameraX" | `camera1-to-camerax`（Camera 迁移专业指导） |
+| "适配折叠屏" | `adaptive`（多形态设备适配） |
 
-### 内置 Skill（`.opencode/skills/`）
+所有 Skill 详见下方分类表格。
 
-项目包含 18 个官方 Android skill：
+### 自定义 Skill（`.opencode/skill/`，6 个）
 
-| 类别 | Skill | 用途 |
+由项目自行维护，覆盖编码规范、代码审查、Git 工作流等核心流程：
+
+| Skill | 用途 | 典型触发语 |
 |---|---|---|
-| 构建/工具 | `agp-9-upgrade` | AGP 版本升级 |
-| 构建/工具 | `android-cli` | Android CLI 工具（创建项目/管理虚拟设备/查找文档） |
-| 构建/工具 | `r8-analyzer` | R8/Proguard 规则分析、去冗余、包体积优化 |
-| UI/适配 | `adaptive` | 多形态设备适配（手机/平板/折叠屏/桌面/TV/Auto/XR） |
-| UI/适配 | `edge-to-edge` | 边到边显示、系统栏/IME insets 修复 |
-| UI/适配 | `styles` | Jetpack Compose Styles API 集成 |
-| UI/适配 | `navigation-3` | Jetpack Navigation 3 集成与迁移 |
-| UI/迁移 | `migrate-xml-views-to-jetpack-compose` | XML View → Jetpack Compose 迁移 |
-| 安全 | `android-intent-security` | Intent 安全审计（Manifest 组件/Intent 防劫持） |
-| 相机 | `camera1-to-camerax` | Camera1/Camera2 → CameraX 迁移 |
-| 支付 | `play-billing-library-version-upgrade` | Google Play Billing Library 升级 |
-| 性能 | `perfetto-trace-analysis` | Perfetto trace 卡顿/延迟/内存根因分析 |
-| 性能 | `perfetto-sql` | Perfetto SQL 查询（slice/thread/内存数据提取） |
-| 测试 | `testing-setup` | 测试策略制定、harness 搭建（单元/UI/截图/E2E） |
-| 系统集成 | `appfunctions` | App Functions（系统级工作流暴露给 AI agent） |
-| 系统集成 | `verified-email` | Credential Manager 免 OTP 已验证邮箱流程 |
-| 系统集成 | `engage-sdk-integration` | Play Engage SDK 集成与调试 |
-| XR | `display-glasses-with-jetpack-compose-glimmer` | AR 显示眼镜 Glimmer UI 开发 |
+| `android-code-style` | Kotlin/Java 编码规范全集：注释模板、资源命名（布局前缀/Drawable/strings）、业务类命名后缀、架构封装约定（Glide/Retrofit/Toast/协程）、颜色文案规范、国际化规范 | "注释怎么写""命名规范" |
+| `android-code-review` | 提交前代码审查编排器：Phase A 安全扫描（硬阻塞）→ Phase B 资源规范自修 → Phase C 代码异常自修 → Section E 注释合规检测，支持 AI 自动修复可修项 | "帮我 review""检查代码" |
+| `android-git-commit` | Git 安全提交编排器：Step 1 代码审查 → Step 2 注释检测 → Step 3 同步远端 → Step 4 提交 → Step 5 推送 → Step 6 MR 链接 | "提交代码""push 到远端" |
+| `android-git-commit-core` | Git 提交核心：变更分析 + Conventional Commit message 生成 + git add/commit，不包含扫描或 lint | （由 android-git-commit 内部调用） |
+| `android-git-commit-sync` | Git 同步流程：SSH 密钥检查、fetch/pull --rebase、冲突报告、push、MR 链接生成 | （由 android-git-commit 内部调用） |
+| `android-git-branch` | Git 分支创建：6 类标准化分支命名与校验，基分支硬阻塞，仅本地创建不推送 | "创建分支" |
+
+### 内置 Skill（`.opencode/skills/`，21 个）
+
+由 Google / JetBrains 官方提供，按功能领域分类组织：
+
+| 分类 | Skill | 用途 |
+|---|---|---|
+| build | `agp-9-upgrade` | AGP 升级到 9.x（不适用于 KMP 项目） |
+| camera | `camera1-to-camerax` | Camera1/Camera2 → CameraX 生命周期感知迁移 |
+| device-ai | `appfunctions` | App Functions：暴露关键用户工作流给系统级 AI agent，无需打开 UI |
+| devtools | `android-cli` | `android` CLI 工具：创建项目、管理 AVD、查找文档 |
+| identity | `verified-email` | Credential Manager 免 OTP 邮箱验证流程 |
+| jetpack-compose | `adaptive` | 多形态适配：手机/平板/折叠屏/桌面/TV/Auto/XR，含窗口尺寸、输入设备、多窗格布局 |
+| jetpack-compose | `migrate-xml-views-to-jetpack-compose` | XML View → Jetpack Compose 结构化迁移（规划 → 主题 → 布局 → 验证 → 清理） |
+| jetpack-compose | `styles` | Compose Styles API 集成：组件主题、自定义样式化、布局属性迁移 |
+| kotlin-tooling | `kotlin-tooling-java-to-kotlin` | Java → 惯用 Kotlin 转换，支持 Spring/Lombok/Hibernate/Dagger/Hilt 等框架感知 |
+| kotlin-tooling | `kotlin-tooling-native-build-performance` | Kotlin/Native iOS 编译/链接性能诊断与优化 |
+| navigation | `navigation-3` | Navigation 3 集成与迁移：深层链接、多返回栈、Scene、条件导航、Hilt/ViewModel 集成 |
+| performance | `r8-analyzer` | R8/Proguard 规则分析：识别冗余/过宽规则以减小 APK |
+| play | `engage-sdk-integration` | Play Engage SDK 集成与调试 |
+| play | `play-billing-library-version-upgrade` | Play Billing Library 升级到最新稳定版 |
+| profilers | `perfetto-trace-analysis` | Perfetto trace 卡顿/延迟/内存根因分析 |
+| profilers | `perfetto-sql` | Perfetto SQL 查询：从 trace 提取 slice/线程/内存数据 |
+| security | `android-intent-security` | Intent 安全审计：Manifest 组件配置 + Intent 防劫持 |
+| system | `edge-to-edge` | 边到边显示：系统栏/导航栏/IME insets 修复 |
+| testing | `testing-setup` | 测试策略制定：单元/UI/截图/E2E 测试框架搭建 |
+| wear | `wear-compose-m3` | Wear OS Compose Material3 开发与迁移（含 M2.5 → M3） |
+| xr | `display-glasses-with-jetpack-compose-glimmer` | AR 显示眼镜 Glimmer UI 开发 |
 
 ### 配置结构
 
@@ -88,7 +105,7 @@ JitPack 只发布 `:Basic` 模块的 AAR + sources jar，不含 `app` 演示模�
 | `.opencode/opencode.jsonc` | OpenCode 项目级配置，定义 agent 与权限白名单 |
 | `.opencode/agents/android-dev.md` | `android-dev` agent 定义（行为规则/场景映射/双阶段交付约束） |
 | `.opencode/skill/` | 项目自定义 skill（6 个） |
-| `.opencode/skills/` | 官方内置 Android skill（18 个） |
+| `.opencode/skills/` | 外部官方 Android skill（21 个） |
 | `AGENTS.md` | 项目级开发指南（模块/工具链/静态分析/硬规则） |
 | `~/.config/opencode/AGENTS.md` | 用户级配置（模型分层/开发偏好/会话规则） |
 
