@@ -52,10 +52,10 @@ Skill 是 OpenCode 的专业化指令集，由 `android-dev` agent 自动按「�
 | "帮我提交代码" | `android-git-commit`（编排审查 → 注释 → 提交 → 推送全流程） |
 | "这段代码有什么问题" | `android-code-review`（执行安全/规范/异常/注释五项检查） |
 | "注释应该怎么写" | `android-code-style`（编码规范全集） |
-| "迁移到 CameraX" | `camera1-to-camerax`（Camera 迁移专业指导） |
-| "适配折叠屏" | `adaptive`（多形态设备适配） |
+| "迁移到 CameraX" | 通过 MCP `android-skills` 搜索 Camera 迁移 skill |
+| "适配折叠屏" | 通过 MCP `android-skills` 搜索 adaptive 布局 skill |
 
-所有 Skill 详见下方分类表格。
+Android SDK skill 全部通过 MCP 获取，`android-dev` agent 会自动搜索并加载对应 skill。
 
 ### 自定义 Skill（`.opencode/skill/`，6 个）
 
@@ -70,33 +70,39 @@ Skill 是 OpenCode 的专业化指令集，由 `android-dev` agent 自动按「�
 | `android-git-commit-sync` | Git 同步流程：SSH 密钥检查、fetch/pull --rebase、冲突报告、push、MR 链接生成 | （由 android-git-commit 内部调用） |
 | `android-git-branch` | Git 分支创建：6 类标准化分支命名与校验，基分支硬阻塞，仅本地创建不推送 | "创建分支" |
 
-### 内置 Skill（`.opencode/skills/`，21 个）
+### Android SDK Skill（MCP 提供）
 
-由 Google / JetBrains 官方提供，按功能领域分类组织：
+Android SDK skill 统一通过 MCP 服务 `android-skills` 获取，由 agent 运行时按场景搜索和加载，无需手动管理本地文件。
 
-| 分类 | Skill | 用途 |
-|---|---|---|
-| build | `agp-9-upgrade` | AGP 升级到 9.x（不适用于 KMP 项目） |
-| camera | `camera1-to-camerax` | Camera1/Camera2 → CameraX 生命周期感知迁移 |
-| device-ai | `appfunctions` | App Functions：暴露关键用户工作流给系统级 AI agent，无需打开 UI |
-| devtools | `android-cli` | `android` CLI 工具：创建项目、管理 AVD、查找文档 |
-| identity | `verified-email` | Credential Manager 免 OTP 邮箱验证流程 |
-| jetpack-compose | `adaptive` | 多形态适配：手机/平板/折叠屏/桌面/TV/Auto/XR，含窗口尺寸、输入设备、多窗格布局 |
-| jetpack-compose | `migrate-xml-views-to-jetpack-compose` | XML View → Jetpack Compose 结构化迁移（规划 → 主题 → 布局 → 验证 → 清理） |
-| jetpack-compose | `styles` | Compose Styles API 集成：组件主题、自定义样式化、布局属性迁移 |
-| kotlin-tooling | `kotlin-tooling-java-to-kotlin` | Java → 惯用 Kotlin 转换，支持 Spring/Lombok/Hibernate/Dagger/Hilt 等框架感知 |
-| kotlin-tooling | `kotlin-tooling-native-build-performance` | Kotlin/Native iOS 编译/链接性能诊断与优化 |
-| navigation | `navigation-3` | Navigation 3 集成与迁移：深层链接、多返回栈、Scene、条件导航、Hilt/ViewModel 集成 |
-| performance | `r8-analyzer` | R8/Proguard 规则分析：识别冗余/过宽规则以减小 APK |
-| play | `engage-sdk-integration` | Play Engage SDK 集成与调试 |
-| play | `play-billing-library-version-upgrade` | Play Billing Library 升级到最新稳定版 |
-| profilers | `perfetto-trace-analysis` | Perfetto trace 卡顿/延迟/内存根因分析 |
-| profilers | `perfetto-sql` | Perfetto SQL 查询：从 trace 提取 slice/线程/内存数据 |
-| security | `android-intent-security` | Intent 安全审计：Manifest 组件配置 + Intent 防劫持 |
-| system | `edge-to-edge` | 边到边显示：系统栏/导航栏/IME insets 修复 |
-| testing | `testing-setup` | 测试策略制定：单元/UI/截图/E2E 测试框架搭建 |
-| wear | `wear-compose-m3` | Wear OS Compose Material3 开发与迁移（含 M2.5 → M3） |
-| xr | `display-glasses-with-jetpack-compose-glimmer` | AR 显示眼镜 Glimmer UI 开发 |
+当前 MCP 提供的 Android skill（通过 `android-skills_list_skills` 可查看最新列表）：
+
+| 分类 | Skill 名称 |
+|---|---|
+| build | `agp-9-upgrade` |
+| camera | `camera1-to-camerax` |
+| device-ai | `appfunctions` |
+| devtools | `android-cli` |
+| identity | `verified-email` |
+| jetpack-compose | `adaptive`、`migrate-xml-views-to-jetpack-compose`、`styles` |
+| navigation | `navigation-3` |
+| performance | `r8-analyzer` |
+| play | `engage-sdk-integration`、`play-billing-library-version-upgrade` |
+| profilers | `perfetto-sql`、`perfetto-trace-analysis` |
+| security | `android-intent-security` |
+| system | `edge-to-edge` |
+| testing | `testing-setup` |
+| wear | `jetpack-compose-m3` |
+| xr | `display-glasses-with-jetpack-compose-glimmer` |
+
+### 本地保留的 SDK Skill（`.opencode/skills/`，3 个）
+
+以下 skill 由 MCP 不提供，保留在本地：
+
+| Skill | 用途 |
+|---|---|
+| `android-intent-security` | Intent 安全审计（Manifest 组件配置 + Intent 防劫持） |
+| `kotlin-tooling-java-to-kotlin` | Java → 惯用 Kotlin 转换，支持 Spring/Lombok/Hibernate/Dagger/Hilt 等框架感知 |
+| `kotlin-tooling-native-build-performance` | Kotlin/Native iOS 编译/链接性能诊断与优化 |
 
 ### 配置结构
 
@@ -105,7 +111,7 @@ Skill 是 OpenCode 的专业化指令集，由 `android-dev` agent 自动按「�
 | `.opencode/opencode.jsonc` | OpenCode 项目级配置，定义 agent 与权限白名单 |
 | `.opencode/agents/android-dev.md` | `android-dev` agent 定义（行为规则/场景映射/双阶段交付约束） |
 | `.opencode/skill/` | 项目自定义 skill（6 个） |
-| `.opencode/skills/` | 外部官方 Android skill（21 个） |
+| `.opencode/skills/` | MCP 未提供的本地保留 SDK skill（3 个） |
 | `AGENTS.md` | 项目级开发指南（模块/工具链/静态分析/硬规则） |
 | `~/.config/opencode/AGENTS.md` | 用户级配置（模型分层/开发偏好/会话规则） |
 
