@@ -1,0 +1,20 @@
+# detekt 规则配置 — 仅启用 KDoc 注释检查
+# 规则文档：https://detekt.dev/docs/rules/comments
+# 位置：项目根目录
+
+comments:
+  UndocumentedPublicClass:
+    active: true
+    excludes: ['**/test/**', '**/Test.kt', '**/Spec.kt']
+    searchInNestedClass: true
+    searchInInnerClass: true
+    searchInInnerInterface: true
+    searchInInnerObject: true
+
+  UndocumentedPublicFunction:
+    active: true
+    excludes: ['**/test/**', '**/Test.kt', '**/Spec.kt']
+
+  UndocumentedPublicProperty:
+    active: true
+    excludes: ['**/test/**', '**/Test.kt', '**/Spec.kt']

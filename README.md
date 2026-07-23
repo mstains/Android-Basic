@@ -1,12 +1,13 @@
 # Android-Basic
 
-Android 基础依赖库，基于 MVVM 架构封装 Activity、Fragment、DialogFragment 基类与常用扩展函数，提供 ViewBinding、ViewModel、本地广播、Result API 等能力的统一抽象，目标是通过 JitPack 集成即可快速搭建业务工程骨架。
+Android 基础依赖库，基于 MVVM 架构封装 Activity、Fragment、DialogFragment 基类与常用扩展函数，提供 ViewBinding、ViewModel、本地广播、Result API 等能力的统一抽象。目标是通过 JitPack 集成即可快速搭建业务工程骨架，并内置完整的 OpenCode 开发环境（自定义 agent、编码规范 skill、Git 工作流 skill、代码审查 skill）。
 
-> 开发者文档：[AGENTS.md](AGENTS.md) · 注释规范见 opencode 全局 skill `android-comment-style`
+> 开发者文档：[AGENTS.md](AGENTS.md) · OpenCode 开发环境见下方 [OpenCode 开发环境](#opencode-开发环境) · 注释规范见 opencode 全局 skill `android-comment-style`
 
 ## 目录
 
 - [项目结构](#项目结构)
+- [OpenCode 开发环境](#opencode-开发环境)
 - [工具链](#工具链)
 - [依赖管理](#依赖管理)
 - [添加依赖](#添加依赖)
@@ -32,6 +33,88 @@ Android 基础依赖库，基于 MVVM 架构封装 Activity、Fragment、DialogF
 
 JitPack 只发布 `:Basic` 模块的 AAR + sources jar，不含 `app` 演示模块。
 
+## OpenCode 开发环境
+
+本项目在 `.opencode/` 目录下配置了完整的 OpenCode 开发环境。
+
+### 自定义 Agent
+
+| Agent | 模式 | 说明 |
+|---|---|---|
+| `android-dev` | primary | Android 开发主力 agent。处理 Kotlin/Java/Compose/Gradle 任务时按场景主动加载对应 skill，采用「方案 → 确认 → 执行」双阶段交付模式。详见 `.opencode/agents/android-dev.md` |
+
+### 如何使用 Skill
+
+Skill 是 OpenCode 的专业化指令集，由 `android-dev` agent 自动按「场景 → Skill」强映射规则加载，**无需手动指定**——你在对话中用自然语言描述需求即可：
+
+| 你这样说 | agent 自动加载 |
+|---------|-------------|
+| "帮我提交代码" | `android-git-commit`（编排审查 → 注释 → 提交 → 推送全流程） |
+| "这段代码有什么问题" | `android-code-review`（执行安全/规范/异常/注释五项检查） |
+| "注释应该怎么写" | `android-code-style`（编码规范全集） |
+| "迁移到 CameraX" | 通过 MCP `android-skills` 搜索 Camera 迁移 skill |
+| "适配折叠屏" | 通过 MCP `android-skills` 搜索 adaptive 布局 skill |
+
+Android SDK skill 全部通过 MCP 获取，`android-dev` agent 会自动搜索并加载对应 skill。
+
+### 自定义 Skill（`.opencode/skill/`，6 个）
+
+由项目自行维护，覆盖编码规范、代码审查、Git 工作流等核心流程：
+
+| Skill | 用途 | 典型触发语 |
+|---|---|---|
+| `android-code-style` | Kotlin/Java 编码规范全集：注释模板、资源命名（布局前缀/Drawable/strings）、业务类命名后缀、架构封装约定（Glide/Retrofit/Toast/协程）、颜色文案规范、国际化规范 | "注释怎么写""命名规范" |
+| `android-code-review` | 提交前代码审查编排器：Phase A 安全扫描（硬阻塞）→ Phase B 资源规范自修 → Phase C 代码异常自修 → Section E 注释合规检测，支持 AI 自动修复可修项 | "帮我 review""检查代码" |
+| `android-git-commit` | Git 安全提交编排器：Step 1 代码审查 → Step 2 注释检测 → Step 3 同步远端 → Step 4 提交 → Step 5 推送 → Step 6 MR 链接 | "提交代码""push 到远端" |
+| `android-git-commit-core` | Git 提交核心：变更分析 + Conventional Commit message 生成 + git add/commit，不包含扫描或 lint | （由 android-git-commit 内部调用） |
+| `android-git-commit-sync` | Git 同步流程：SSH 密钥检查、fetch/pull --rebase、冲突报告、push、MR 链接生成 | （由 android-git-commit 内部调用） |
+| `android-git-branch` | Git 分支创建：6 类标准化分支命名与校验，基分支硬阻塞，仅本地创建不推送 | "创建分支" |
+
+### Android SDK Skill（MCP 提供）
+
+Android SDK skill 统一通过 MCP 服务 `android-skills` 获取，由 agent 运行时按场景搜索和加载，无需手动管理本地文件。
+
+当前 MCP 提供的 Android skill（通过 `android-skills_list_skills` 可查看最新列表）：
+
+| 分类 | Skill 名称 |
+|---|---|
+| build | `agp-9-upgrade` |
+| camera | `camera1-to-camerax` |
+| device-ai | `appfunctions` |
+| devtools | `android-cli` |
+| identity | `verified-email` |
+| jetpack-compose | `adaptive`、`migrate-xml-views-to-jetpack-compose`、`styles` |
+| navigation | `navigation-3` |
+| performance | `r8-analyzer` |
+| play | `engage-sdk-integration`、`play-billing-library-version-upgrade` |
+| profilers | `perfetto-sql`、`perfetto-trace-analysis` |
+| security | `android-intent-security` |
+| system | `edge-to-edge` |
+| testing | `testing-setup` |
+| wear | `jetpack-compose-m3` |
+| xr | `display-glasses-with-jetpack-compose-glimmer` |
+
+### 本地保留的 SDK Skill（`.opencode/skills/`，3 个）
+
+以下 skill 由 MCP 不提供，保留在本地：
+
+| Skill | 用途 |
+|---|---|
+| `android-intent-security` | Intent 安全审计（Manifest 组件配置 + Intent 防劫持） |
+| `kotlin-tooling-java-to-kotlin` | Java → 惯用 Kotlin 转换，支持 Spring/Lombok/Hibernate/Dagger/Hilt 等框架感知 |
+| `kotlin-tooling-native-build-performance` | Kotlin/Native iOS 编译/链接性能诊断与优化 |
+
+### 配置结构
+
+| 路径 | 作用 |
+|---|---|
+| `.opencode/opencode.jsonc` | OpenCode 项目级配置，定义 agent 与权限白名单 |
+| `.opencode/agents/android-dev.md` | `android-dev` agent 定义（行为规则/场景映射/双阶段交付约束） |
+| `.opencode/skill/` | 项目自定义 skill（6 个） |
+| `.opencode/skills/` | MCP 未提供的本地保留 SDK skill（3 个） |
+| `AGENTS.md` | 项目级开发指南（模块/工具链/静态分析/硬规则） |
+| `~/.config/opencode/AGENTS.md` | 用户级配置（模型分层/开发偏好/会话规则） |
+
 ## 工具链
 
 | 维度 | 版本 |
@@ -41,10 +124,10 @@ JitPack 只发布 `:Basic` 模块的 AAR + sources jar，不含 `app` 演示模�
 | Kotlin | 1.9.24 |
 | compileSdk / targetSdk | 35 |
 | minSdk | 23 |
-| JVM target（`app`） | Java 11 |
-| JVM target（`Basic`） | Java 21 |
+| JVM target | Java 21 |
+| coreLibraryDesugaring | `com.android.tools:desugar_jdk_libs:2.1.4`（两模块均启用） |
 
-两模块的 `compileOptions` 不一致是有意为之：`Basic` 使用 Java 21 以便后续引入更新的协程与标准库能力，`app` 保持 Java 11 以贴近典型业务工程现状。仓库镜像（腾讯云 + 阿里云）见 `settings.gradle:11-16, 28-33`。
+两模块均统一使用 Java 21（`compileOptions` + `kotlinOptions.jvmTarget`）。仓库镜像（腾讯云 + 阿里云）见 `settings.gradle:11-16, 28-33`。
 
 ## 依赖管理
 
@@ -325,13 +408,13 @@ WindowBuilder()
 
 ## 日期格式化
 
-`DateManager`（`Basic/.../manager/DateManager.kt`）提供 14 个 `DateTimeFormatter` 模板，覆盖纯日期、日期时间、纯时间、年月、国际化、中文、HTTP / RFC 等常见场景。`DateTimeFormatter` 线程安全，可作为全局单例复用：
+`AppDateFormatter` / `DatePatterns`（`Basic/.../manager/`）提供 14 个 `DateTimeFormatter` 模板，覆盖纯日期、日期时间、纯时间、年月、国际化、中文、HTTP / RFC 等常见场景。`DateTimeFormatter` 线程安全，可作为全局单例复用：
 
 ```kotlin
 val now = LocalDateTime.now()
-val stamp = now.format(DateManager.DATE_TIME)        // 2026-06-08 14:23:01
-val iso = now.format(DateManager.ISO_8601)            // 2026-06-08T14:23:01Z
-val cn = now.format(DateManager.CN_DATE)              // 2026年06月08日
+val stamp = now.format(AppDateFormatter.DATE_TIME)        // 2026-06-08 14:23:01
+val iso = now.format(AppDateFormatter.ISO_8601)            // 2026-06-08T14:23:01Z
+val cn = now.format(AppDateFormatter.CN_DATE)              // 2026年06月08日
 ```
 
 | 模板 | 格式 |
@@ -379,7 +462,7 @@ val names = arrayOf(
 | 能力类型 | 落点文件 |
 |---|---|
 | 权限 / 相册 / 拍照等 `ActivityResultLauncher` | `extend/ResultCallbackLauncher.kt` |
-| 日期 `DateTimeFormatter` 模板 | `manager/DateManager.kt` |
+| 日期 `DateTimeFormatter` 模板 | `manager/AppDateFormatter.kt` / `manager/DatePatterns.kt` |
 | 权限中文名常量与扩展 | `utils/ChinesePermission.kt` |
 | 通用扩展函数（Context / Activity / Fragment / Intent / 文件路径 / 列表 / 日期） | `extend/` 目录下按主题拆分的 *Ext.kt |
 | Activity / Fragment / DialogFragment 基类 | `activity/` / `fragment/` / `dialog/` |

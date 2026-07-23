@@ -2,4 +2,9 @@
 <resources>
     <string name="app_business_trip_text">Business Trip</string>
     <string name="app_hotel_text">Hotel</string>
+    <string name="app_change_english_text">English</string>
+
+    <string name="app_change_chinese_text">Chinese</string>
+
+    <string name="app_auto_system_language_text">System Auto</string>
 </resources>

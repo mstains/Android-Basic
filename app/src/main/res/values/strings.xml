@@ -2,4 +2,11 @@
     <string name="app_name">BasicApplication</string>
     <string name="app_business_trip_text">因公出差</string>
     <string name="app_hotel_text">酒店</string>
+
+    <string name="app_change_english_text">切换成英文</string>
+
+    <string name="app_change_chinese_text">切换成中文</string>
+
+    <string name="app_auto_system_language_text">跟随系统</string>
+
 </resources>

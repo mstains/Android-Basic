@@ -7,11 +7,15 @@ import android.widget.Toast
 import com.letter.basic.activity.BaseMultiStateVBActivity
 
 import com.letter.basic.databinding.ActivityMainBinding
+import com.letter.basic.extend.launchActivity
 import com.letter.basic.extend.launchImagesAndVideos
 import com.letter.basic.extend.launchPermissions
+import com.letter.basic.extend.registerActivityLauncher
 import com.letter.basic.extend.registerMultiplePermissionsLauncher
 import com.letter.basic.extend.registerMultiplePhotoPickerLauncher
+import com.letter.basic.extend.switchLanguage
 import com.letter.basic.utils.toPermissionChineseNames
+import java.util.Locale
 
 
 /**
@@ -20,6 +24,8 @@ import com.letter.basic.utils.toPermissionChineseNames
  * 演示 Basic 库中两类典型能力：
  * 1. 通过 [registerMultiplePermissionsLauncher] + [launchPermissions] 申请相机权限。
  * 2. 通过 [registerMultiplePhotoPickerLauncher] + [launchImagesAndVideos] 多选图片 / 视频。
+ *
+ * 同时演示 [switchLanguage] 扩展的 3 种调用方式（切到中文 / 切到英文 / 跟随系统）。
  *
  * @author letter
  */
@@ -34,11 +40,15 @@ class MainActivity : BaseMultiStateVBActivity<ActivityMainBinding>() {
     // 超过 9 张会触发系统选择器分页，影响交互一致性。改大需配合自绘 UI 评估。
     private val mPhotoPickLauncher = registerMultiplePhotoPickerLauncher()
 
+
+    private val activityLauncher = registerActivityLauncher()
+
     /**
      * 注册按钮点击监听。
      *
      * - 相机权限按钮：申请通过后提示"权限申请通过"，被拒绝时列出被拒绝项的中文名。
      * - 打开相册按钮：调用 [launchImagesAndVideos] 多选图片 / 视频，并对每个 Uri 显示 Toast。
+     * - 切到中文 / 切到英文 / 跟随系统按钮：调用 [switchLanguage] 切换 App 语言并重建当前 Activity。
      */
     override fun initListener() {
         // 示例未做"拒绝后引导跳转设置页"的生产级 UX，仅 Toast 展示结果
@@ -47,7 +57,9 @@ class MainActivity : BaseMultiStateVBActivity<ActivityMainBinding>() {
                 if (allGranted) {
                     Toast.makeText(this, "权限申请通过", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(this, "${deniedList.toPermissionChineseNames()}被拒绝", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this, "${deniedList.toPermissionChineseNames()}被拒绝", Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }
@@ -59,6 +71,15 @@ class MainActivity : BaseMultiStateVBActivity<ActivityMainBinding>() {
                 }
             }
         }
+
+
+        viewBinding.btSwitchLanguage.setOnClickListener {
+
+            activityLauncher.launchActivity<LanguageExampleActivity>(this)
+
+        }
+
+
     }
 
     /**
@@ -71,11 +92,5 @@ class MainActivity : BaseMultiStateVBActivity<ActivityMainBinding>() {
         return ActivityMainBinding.inflate(inflater)
     }
 
-    /**
-     * 初始化状态栏。
-     *
-     * 示例未对状态栏做定制，保持系统默认样式。
-     */
-    override fun initStatusBar() {
-    }
+
 }
