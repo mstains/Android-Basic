@@ -246,8 +246,8 @@ feat(order): 添加退款功能
 ### 固定输出
 
 ```
-## Step 6: MR 链接
-🔗 https://github.com/aaaa/-/merge_requests/new?...source_branch=feature/xxx&target_branch=master
+## Step 6: MR 链接(例如：)
+🔗 https://github.com/xxx/-/merge_requests/new?...source_branch=feature/xxx&target_branch=master
 ```
 
 ### 边界

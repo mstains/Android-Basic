@@ -12,6 +12,7 @@ Android 基础依赖库，基于 MVVM 架构封装 Activity、Fragment、DialogF
 - [依赖管理](#依赖管理)
 - [添加依赖](#添加依赖)
 - [基类使用](#基类使用)
+- [适配器](#适配器)
 - [扩展函数](#扩展函数)
 - [工具类](#工具类)
 - [日期格式化](#日期格式化)
@@ -29,7 +30,7 @@ Android 基础依赖库，基于 MVVM 架构封装 Activity、Fragment、DialogF
 | 模块 | 类型 | 作用 |
 |---|---|---|
 | `app/` | `com.android.application` | 演示模块，依赖 `:Basic`，用于本地验证基类与扩展函数 |
-| `Basic/` | `com.android.library` | 库模块，发布到 JitPack（坐标 `com.github.mstains:android-basic:1.0`，见 `Basic/build.gradle:8-13`） |
+| `Basic/` | `com.android.library` | 库模块，发布到 JitPack（坐标 `com.github.mstains:android-basic:1.5`，见 `Basic/build.gradle:8-13`） |
 
 JitPack 只发布 `:Basic` 模块的 AAR + sources jar，不含 `app` 演示模块。
 
@@ -151,7 +152,7 @@ dependencyResolutionManagement {
 **Step 2** — 在模块 `build.gradle` 中添加依赖：
 
 ```groovy
-implementation 'com.github.mstains:android-basic:1.4'
+implementation 'com.github.mstains:android-basic:1.5'
 ```
 
 > 坐标大小写敏感（`android-basic`，**非** `Android-Basic`）；版本号以 `Basic/build.gradle` 中 `VERSION_NAME` 为准，后续随 tag 演进。
@@ -269,9 +270,69 @@ class LoadingDialog : BaseMultiStateVBDialogFragment<DialogLoadingBinding>() {
 LoadingDialog().show(supportFragmentManager)
 ```
 
+## 适配器
+
+基于 `BaseRecyclerViewAdapterHelper` 封装的 ViewBinding 通用适配器，内置选择模式、拖拽排序、侧滑删除能力。
+
+### BaseMultiStateVBQuickAdapter
+
+| 能力 | 说明 |
+|---|---|
+| ViewBinding | 子类通过 `createViewBinding` 提供布局绑定，避免 `findViewById` |
+| 多状态页面 | 内置空数据、加载中、错误页支持（通过 `addStateView` 或 DataBinding 配置） |
+| 拖拽排序 | 实现 `DragAndSwipeDataCallback`，长按拖拽排序 |
+| 侧滑删除 | SwipeAction 支持，子类可自定义侧滑菜单 |
+| 选择模式 | `SelectionMode.NONE`（默认）/ `SINGLE`（单选）/ `MULTIPLE`（多选），通过 `selectionMode` 切换 |
+| 多选上限 | `maxSelectCount` 限制多选最大数量 |
+
+```kotlin
+class UserAdapter : BaseMultiStateVBQuickAdapter<User, ItemUserBinding>() {
+
+    // 提供 ViewBinding 实例
+    override fun createViewBinding(
+        context: Context, inflater: LayoutInflater, parent: ViewGroup
+    ): ItemUserBinding {
+        return ItemUserBinding.inflate(inflater, parent, false)
+    }
+
+    override fun convert(
+        holder: ViewBindingHolder<ItemUserBinding>, item: User
+    ) {
+        // 通过 holder.viewBinding 直接访问控件
+        holder.viewBinding.tvName.text = item.name
+        // isSelected 反映当前 item 选中状态，供单选/多选 UI 更新
+        holder.viewBinding.checkbox.isChecked = isSelected(holder)
+    }
+}
+```
+
+### ViewBindingHolder
+
+RecyclerView ViewHolder 基类，持有 `val viewBinding: VB`，在构造时通过 `viewBinding.root` 作为 itemView。子类 ViewBinding 类型由泛型 `VB` 约束，避免强制转型。
+
+```kotlin
+// 内部使用，一般无需直接继承；由 BaseMultiStateVBQuickAdapter 自动创建
+open class ViewBindingHolder<VB : ViewBinding>(val viewBinding: VB) :
+    RecyclerView.ViewHolder(viewBinding.root)
+```
+
 ## 扩展函数
 
-扩展函数统一放在 `Basic/src/main/java/com/letter/basic/extend/`，按职责拆分为多个文件（`IntentExt` / `FragmentExt` / `AppCompatActivityExt` / `FileDirExt` / `DateExt` / `ListExt` / `ResultCallbackLauncher`）。
+扩展函数统一放在 `Basic/src/main/java/com/letter/basic/extend/`，目前共 11 个文件：
+
+| 文件 | 职责 |
+|---|---|
+| `ResultCallbackLauncher.kt` | Activity / 权限 / 相册 / 拍照的 Result API 封装（推荐方案） |
+| `AppCompatActivityExt.kt` | Fragment 事务、软键盘、状态栏、Activity 重启、Intent 参数获取 |
+| `FragmentExt.kt` | 子 Fragment 事务、Arguments / Intent 参数获取 |
+| `IntentExt.kt` | Intent 导航（已废弃 `baseStartActivity*`）+ Service 启停 + dp 转换 |
+| `FileDirExt.kt` | Context 扩展：各类文件/缓存/数据库目录路径 |
+| `ListExt.kt` | 列表扩展：`filterWithIndex` / `mapWithIndex` / `forEachWithIndex` / `findWithIndex` |
+| `DateParseExt.kt` | 字符串日期解析：`formatDate` / `formatDateTime` / `daysBetween` |
+| `LocalDateExt.kt` | `LocalDate` 扩展：`isToday` / `isYesterday` / `daysBetween` / `dayOfWeek` / `plusDaysOrNull` 等 9 个 |
+| `LocalDateTimeExt.kt` | `LocalDateTime` 扩展：`date` / `time` / `daysBetween` |
+| `TimestampExt.kt` | 时间戳扩展：`Long.toLocalDate` / `Long.toLocalDateTime` |
+| `BaseCommonMultiStateActivityExt.kt` | 多语言切换：`switchLanguage` / `applyLanguage` |
 
 ### Intent 导航
 
@@ -406,6 +467,20 @@ WindowBuilder()
 - 同进程页面间通信 → 改用 `StateFlow` / `SharedFlow` 配合 `lifecycleScope` 订阅
 - 跨进程 / 系统事件 → 改用标准 `BroadcastReceiver` 或 `WorkManager`
 
+### ReceiverManager — 广播注册管理器
+
+统一的广播注册与注销管理器，配合 `BaseMultiStateVBReceiverActivity` / `BaseMultiStateVBVMReceiverActivity` 等带 Receiver 能力的基类使用。
+
+```kotlin
+// 基类内部已持有 ReceiverManager 实例，子类直接注册即可
+registerReceiver(ReceiverManager.Receiver(action = "com.example.ACTION") { intent ->
+    val data = intent?.getStringExtra("key")
+    // 处理广播事件
+})
+```
+
+> `ReceiverManager` 在 `onDestroy` 中自动注销所有已注册的广播，无需手动管理。
+
 ## 日期格式化
 
 `AppDateFormatter` / `DatePatterns`（`Basic/.../manager/`）提供 14 个 `DateTimeFormatter` 模板，覆盖纯日期、日期时间、纯时间、年月、国际化、中文、HTTP / RFC 等常见场景。`DateTimeFormatter` 线程安全，可作为全局单例复用：
@@ -462,11 +537,20 @@ val names = arrayOf(
 | 能力类型 | 落点文件 |
 |---|---|
 | 权限 / 相册 / 拍照等 `ActivityResultLauncher` | `extend/ResultCallbackLauncher.kt` |
+| Intent 导航 / Service 启停 / dp 转换 | `extend/IntentExt.kt` |
+| Fragment 事务（含子 Fragment） | `extend/FragmentExt.kt` + `extend/AppCompatActivityExt.kt` |
+| 文件/缓存/数据库目录路径 | `extend/FileDirExt.kt` |
+| 列表带索引操作 | `extend/ListExt.kt` |
+| 字符串日期解析 | `extend/DateParseExt.kt` |
+| `LocalDate` / `LocalDateTime` 扩展 | `extend/LocalDateExt.kt` + `extend/LocalDateTimeExt.kt` |
+| 时间戳与日期互转 | `extend/TimestampExt.kt` |
+| 多语言切换 | `extend/BaseCommonMultiStateActivityExt.kt` |
 | 日期 `DateTimeFormatter` 模板 | `manager/AppDateFormatter.kt` / `manager/DatePatterns.kt` |
+| 广播注册管理 | `manager/ReceiverManager.kt` |
 | 权限中文名常量与扩展 | `utils/ChinesePermission.kt` |
-| 通用扩展函数（Context / Activity / Fragment / Intent / 文件路径 / 列表 / 日期） | `extend/` 目录下按主题拆分的 *Ext.kt |
+| Activity 栈管理 | `utils/ActivityController.kt` |
 | Activity / Fragment / DialogFragment 基类 | `activity/` / `fragment/` / `dialog/` |
-| 跨组件能力（Activity 栈、广播工具等） | `utils/` 或 `manager/` |
+| RecyclerView 适配器与 ViewHolder | `adapter/` |
 
 ## 验证与发布
 
@@ -482,8 +566,8 @@ val names = arrayOf(
 
 ## 版本历史
 
-- **1.0** — 基础 Activity / Fragment / DialogFragment 基类与扩展函数；本地广播与 `ResultCallbackLauncher` 体系建立（当前 `Basic/build.gradle` 中 `VERSION_NAME`）
-- **0.x** — 内部迭代版本，未发布 JitPack
+- **1.5** — 新增 `BaseMultiStateVBQuickAdapter` 通用适配器 + `ViewBindingHolder` ViewHolder 基类，支持选择模式、拖拽排序、侧滑删除；新增 `ReceiverManager` 广播注册管理器；新增语言切换扩展（`switchLanguage` / `applyLanguage`）；修复 ViewModel 创建方式，纳入 ViewModelStore 管理；新增 `DateParseExt` / `LocalDateExt` / `LocalDateTimeExt` / `TimestampExt` 日期扩展
+- **1.0** — Activity / Fragment / DialogFragment 基类体系与扩展函数；`ResultCallbackLauncher` Result API 封装；`BroadcastUtil` 本地广播；`WindowBuilder` Dialog 窗口构建器；日期格式化（14 个模板）与权限中文名
 
 ## License
 
