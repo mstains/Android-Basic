@@ -28,7 +28,9 @@ abstract class BaseMultiStateVBVMFragment<VB : ViewBinding, VM : ViewModel> :
      * 懒加载创建，作用域跟随 Fragment 的 ViewModelStore。
      */
     protected val mViewModel: VM by lazy {
-        ViewModelProvider.NewInstanceFactory().create(providerVMClass())
+        // 通过 ViewModelProvider 获取实例以纳入 ViewModelStore 管理，
+        // 确保 Fragment 重建（如配置变更）时 ViewModel 可被保留而非重新创建
+        ViewModelProvider(this, ViewModelProvider.NewInstanceFactory()).get(providerVMClass())
     }
 
 
@@ -42,17 +44,10 @@ abstract class BaseMultiStateVBVMFragment<VB : ViewBinding, VM : ViewModel> :
 
 
     private fun initViewModel() {
-        // 当前为占位实现：仅把 this 注册为 LifecycleObserver，未触发 mViewModel 懒加载。
+        // 当前为占位实现，未触发 mViewModel 懒加载。
         // 真实 ViewModel 初始化由子类在 providerVMClass() 引用 mViewModel 时按需触发。
-        // TODO(letter#待建): 当前 initViewModel 为占位,后续若需在 initViewModel 中做
-        //   ViewModel 字段初始化(如 SavedStateHandle 注入) → 在此处扩展,同步在 onDestroy
-        //   中清理对应 observer
-        providerVMClass().let { viewModel ->
-
-            lifecycle.addObserver(this)
-
-
-        }
+        // TODO(letter#待建): 后续若需在 initViewModel 中做 ViewModel 字段初始化
+        //   (如 SavedStateHandle 注入) → 在此处扩展
     }
 
     /**
@@ -87,12 +82,6 @@ abstract class BaseMultiStateVBVMFragment<VB : ViewBinding, VM : ViewModel> :
 
 
     override fun onDestroy() {
-        // 与 initViewModel 中的 addObserver(this) 对称。
-        // 注意：Fragment 自身已由 FragmentManager 注册为 LifecycleObserver，
-        // 此 remove 是为了清理 initViewModel 中手动 add 的额外引用，避免重复观察。
-        mViewModel.let {
-            lifecycle.removeObserver(this)
-        }
         super.onDestroy()
     }
 }

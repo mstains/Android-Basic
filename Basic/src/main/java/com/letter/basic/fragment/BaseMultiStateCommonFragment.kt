@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.LifecycleObserver
 
 
 /**
@@ -16,7 +15,7 @@ import androidx.lifecycle.LifecycleObserver
  * @author Boqing.wu
  * @since 2026-06-04
  */
-abstract class BaseMultiStateCommonFragment : Fragment(), LifecycleObserver {
+abstract class BaseMultiStateCommonFragment : Fragment() {
 
 
     override fun onCreateView(

@@ -12,6 +12,9 @@ constraintlayout = "2.1.4"
 vanniktechMavenPublish = "0.25.3"
 detekt = "1.23.7"
 
+#adapter
+baserecyclerviewadapterhelper4 = "4.3.4"
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -21,6 +24,10 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+
+#adapter
+baserecyclerviewadapterhelper4 = { module = "io.github.cymchad:BaseRecyclerViewAdapterHelper4", version.ref = "baserecyclerviewadapterhelper4" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
