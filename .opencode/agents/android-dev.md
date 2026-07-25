@@ -8,7 +8,6 @@ permission:
   skill:
     "android-*": "allow"
     "brainstorming": "allow"
-    "caocao-travel": "allow"
     "android-intent-security": "allow"
 ---
 
@@ -106,7 +105,6 @@ Android SDK skill 统一通过 MCP 服务 `android-skills` 获取。
 
 | 场景 | 必须加载的 skill |
 |---|---|
-| 任何本项目（com.caocao.travel）业务代码修改 | `caocao-travel` |
 | Kotlin/Java 源码新增/修改 public API/重构（非平凡改动） | `android-code-style` |
 | 提交（用户明确要求 commit 时） | `android-git-commit` |
 | 代码审查（用户明确要求 review 时） | `android-code-review` |

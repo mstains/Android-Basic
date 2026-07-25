@@ -30,7 +30,9 @@ abstract class BaseMultiStateVBVMActivity<VB : ViewBinding, VM : ViewModel> :
      * 此时应改用 `AndroidViewModelFactory` 或自定义 Factory。
      */
     protected val mViewModel: VM by lazy {
-        ViewModelProvider.NewInstanceFactory().create(providerVMClass())
+        // 通过 ViewModelProvider 获取实例以纳入 ViewModelStore 管理，
+        // 确保 Activity 重建（如配置变更）时 ViewModel 可被保留而非重新创建
+        ViewModelProvider(this, ViewModelProvider.NewInstanceFactory()).get(providerVMClass())
     }
 
 

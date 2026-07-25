@@ -247,7 +247,7 @@ feat(order): 添加退款功能
 
 ```
 ## Step 6: MR 链接
-🔗 https://gitlab.com/caocao/travel/-/merge_requests/new?...source_branch=feature/xxx&target_branch=master
+🔗 https://github.com/aaaa/-/merge_requests/new?...source_branch=feature/xxx&target_branch=master
 ```
 
 ### 边界
