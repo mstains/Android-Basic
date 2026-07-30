@@ -2,7 +2,7 @@
 
 ## 基础规则
 - 始终使用简体中文回答
-- 公共 API 与行内注释使用中文（KDoc 规范见 `~/.config/opencode/skill/android-comment-style`）
+- 公共 API 与行内注释使用中文（KDoc 规范见 `android-code-style` skill）
 
 ## 模块
 - `app/` — 演示模块，依赖 `:Basic`
@@ -17,7 +17,7 @@
 - `./gradlew clean`
 
 ## 工具链
-- Gradle 8.10.2 / AGP 8.8.2 / Kotlin 1.9.24 / compileSdk 35 / minSdk 23
+- Gradle 8.10.2 / AGP 8.8.2 / Kotlin 2.2.10 / compileSdk 35 / minSdk 23
 - JVM target：两模块均为 Java 21（`compileOptions` + `kotlinOptions.jvmTarget`）
 - `coreLibraryDesugaring`：两模块均启用 + `desugar_jdk_libs:2.1.4`（添加新模块时不要遗漏）
 - 仓库镜像：腾讯云 + 阿里云（`settings.gradle:11-16, 28-33`）
@@ -35,16 +35,17 @@
 ## 代码层硬规则
 - 继承 `BaseMultiStateVBActivity` 时，`onCreate` 固定顺序为
   `initStatusBar → initView → initData → initListener`
-  （见 `Basic/.../BaseMultiStateVBActivity.kt:29-36`），子类不要重复调用 super
+  （见 `Basic/.../activity/BaseMultiStateVBActivity.kt:29-36`），子类不要重复调用 super
 - `IntentExt.kt` 中 `baseStartActivity*` / `baseStartActivityForResult*` 已 `@Deprecated`，
-  新代码改用 `ResultCallbackLauncher` 系列（`Basic/.../ResultCallbackLauncher.kt`）
+  新代码改用 `ResultCallbackLauncher` 系列（`Basic/.../extend/ResultCallbackLauncher.kt`）
 - `BaseMultiState*` 自动入栈 `ActivityController`；若需全局 `Application`，
   在自家 `Application.onCreate()` 中调用 `ActivityController.setApplication(this)`
 - `BroadcastUtil` 基于已废弃的 `LocalBroadcastManager`，仅作兼容保留
+  （见 `Basic/.../utils/BroadcastUtil.kt`）
 
 ## 新增能力的归位
 - 权限 / 相册 / 拍照等 `ActivityResultLauncher` → `ResultCallbackLauncher.kt`
-- 日期 `DateTimeFormatter` 模板 → `AppDateFormatter.kt` / `DatePatterns.kt`
+- 日期 `DateTimeFormatter` 模板 → `Basic/.../manager/AppDateFormatter.kt` / `Basic/.../manager/DatePatterns.kt`
 - 权限中文名 → `ChinesePermission` 枚举 + `toPermissionChineseName*` 扩展
 
 ## 验证 / CI
@@ -52,6 +53,6 @@
 - 提交前只能依赖本地编译；CI 流水线由调用方自行配置
 
 ## 注释规范
-正文见 opencode 全局 skill `~/.config/opencode/skill/android-comment-style/SKILL.md`。
+正文见 opencode 全局 skill `android-code-style`。
 速记：public API 必带 KDoc；行内注释回答"为什么"而非"做什么"；TODO 格式
 `// TODO(作者/issue号): 原因 → 计划方案`。
