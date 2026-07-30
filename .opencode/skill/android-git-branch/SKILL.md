@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: mstains
-  last-updated: '2026-06-30'
+  last-updated: '2026-07-30'
   keywords:
   - android
   - git
@@ -22,10 +22,11 @@ metadata:
 ```
 Step 1: 确定分支类型 + 简短描述
 Step 2: 校验基分支（硬阻塞）
-Step 3: 校验工作区清洁度（硬阻塞）
-Step 4: 校验命名合法性
-Step 5: git checkout -b <prefix>/<desc>
-Step 6: 输出创建结果
+Step 3: 同步 develop（合并远端 master）
+Step 4: 校验工作区清洁度（硬阻塞）
+Step 5: 校验命名合法性
+Step 6: git checkout -b <prefix>/<desc>
+Step 7: 输出创建结果
 ```
 
 ---
@@ -67,14 +68,14 @@ Step 6: 输出创建结果
 
 ### 2.1 基分支映射
 
-| 分支类型 | 要求基分支 | 原因 |
-|----------|-----------|------|
-| `feature/` | `develop` | 功能开发基于主开发分支 |
-| `bugfix/` | `develop` | 缺陷修复基于主开发分支 |
-| `refactor/` | `develop` | 重构基于主开发分支 |
-| `docs/` | `develop` | 文档更新基于主开发分支 |
-| `hotfix/` | `master` | 热修复基于线上主干 |
-| `release/` | `develop` | 发布准备基于主开发分支 |
+| 分支类型 | 要求基分支 | 备注 | 原因 |
+|----------|-----------|------|------|
+| `feature/` | `develop` | 同步后创建 | 功能开发基于主开发分支，创建前先将远端 master 合并到 develop |
+| `bugfix/` | `develop` | 同步后创建 | 缺陷修复基于主开发分支，创建前先将远端 master 合并到 develop |
+| `refactor/` | `develop` | 同步后创建 | 重构基于主开发分支，创建前先将远端 master 合并到 develop |
+| `docs/` | `develop` | 同步后创建 | 文档更新基于主开发分支，创建前先将远端 master 合并到 develop |
+| `release/` | `develop` | 同步后创建 | 发布准备基于主开发分支，创建前先将远端 master 合并到 develop |
+| `hotfix/` | `master` | 无需同步 | 热修复基于线上主干，不触发合并 |
 
 ### 2.2 校验逻辑
 
@@ -97,7 +98,38 @@ fi
 
 ---
 
-## Step 3：校验工作区清洁度
+## Step 3：同步 develop（合并远端 master）
+
+仅当基分支为 `develop` 时执行此步骤（`hotfix` 类型跳过）。
+
+### 操作说明
+
+在 `develop` 上执行 `git pull origin master`，将远端 `master` 的最新代码合并到本地 `develop`，确保新分支基于包含 master 全部提交的最新代码。
+
+### 执行逻辑
+
+```bash
+if [ "$REQUIRED_BASE" = "develop" ]; then
+  echo "📥 正在同步 develop（合并远端 master）..."
+  CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+  if [ "$CURRENT_BRANCH" != "develop" ]; then
+    echo "🔴 当前不在 develop 上，请先执行 Step 2"
+    exit 1
+  fi
+  git pull origin master
+  if [ $? -ne 0 ]; then
+    echo "🔴 合并冲突，请手动解决后重试"
+    exit 1
+  fi
+  echo "✅ develop 已同步到远端 master 的最新提交"
+fi
+```
+
+**⚠️ 合并冲突处理**：如果 `git pull origin master` 产生冲突，则硬阻塞终止，由用户手动解决冲突后再重试。
+
+---
+
+## Step 4：校验工作区清洁度
 
 ```bash
 if [ -n "$(git status --porcelain)" ]; then
@@ -112,9 +144,9 @@ fi
 
 ---
 
-## Step 4：校验命名
+## Step 5：校验命名
 
-### 4.1 命名规则校验
+### 5.1 命名规则校验
 
 ```bash
 BRANCH_NAME="${PREFIX}${DESC}"
@@ -138,7 +170,7 @@ if [ "${DESC:0:1}" = "-" ] || [ "${DESC: -1}" = "-" ]; then
 fi
 ```
 
-### 4.2 重名检测
+### 5.2 重名检测
 
 ```bash
 # 检查本地分支
@@ -155,7 +187,7 @@ fi
 
 ---
 
-## Step 5：创建分支
+## Step 6：创建分支
 
 ```bash
 git checkout -b "$BRANCH_NAME"
@@ -165,14 +197,15 @@ git checkout -b "$BRANCH_NAME"
 
 ---
 
-## Step 6：输出结果
+## Step 7：输出结果
 
 ```
 ✅ 分支创建成功
 
    类型:    feature
    分支名:  feature/login-page
-   基于:    develop
+   基于:    develop（已同步远端 master）
+  同步:    git pull origin master → 已合并
 
 下一个动作:
   修改代码后执行提交: /android-git-commit
@@ -207,10 +240,11 @@ fi
 | 场景 | 行为 |
 |------|------|
 | 基分支不匹配 | **硬阻塞**，提示应切换到哪个分支 |
+| 合并远端 master 产生冲突 | **硬阻塞**，提示手动解决冲突后重试 |
+| 工作区有未提交变更 | **硬阻塞**，提示 stash 或 commit 后重试 |
 | 命名含大写/特殊字符 | **硬阻塞** |
 | 本地已存在同名分支 | **硬阻塞** |
 | 远端已存在同名分支 | **警告**，不阻塞 |
-| 工作区有未提交变更 | **硬阻塞**，提示 stash 或 commit 后重试 |
 | 分支创建后 | 仅本地，不自动推送 |
 | 当前在 master 分支直接操作 | **硬阻塞**，提示基于 develop 创建分支 |
 
