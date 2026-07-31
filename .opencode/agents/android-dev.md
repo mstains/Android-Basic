@@ -273,11 +273,28 @@ Android SDK skill 统一通过 MCP 服务 `android-skills` 获取。
      `curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh`
      （或 `npm i -g @colbymchenry/codegraph`），完成后执行 `codegraph install` 接入 agent
 2. 检查项目根 `.codegraph/` 目录是否存在（glob / ls 只读操作）
-   - 不存在 → 提示 `codegraph init` 生成项目索引
+   - 不存在 → **先提醒用户「是否添加索引」**，用户确认后执行 `codegraph init` 初始化
    - 存在 → 静默使用，不提示
 
-检测为纯只读操作，无论结果如何都不影响任务继续；
+以上 1-2 步为纯只读检测，无论结果如何都不影响任务继续；
 CodeGraph 不可用时自动降级为 `glob` + `grep` + `read`（见上文规则）。
+
+3. `codegraph init` 完成后（写操作），检查 AGENTS.md 末尾是否已有 `<!-- CODEGRAPH_START -->` 段落：
+   - 已有 → 跳过（codegraph install 已自动写入）
+   - 缺失 → 追加以下内容到 AGENTS.md 末尾（仅作恢复手段，用代码块原样复制）：
+
+```text
+<!-- CODEGRAPH_START -->
+## CodeGraph
+
+In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the repo root), reach for it BEFORE grep/find or reading files when you need to understand or locate code:
+
+- **MCP tool** (when available): `codegraph_explore` answers most code questions in one call — the relevant symbols' verbatim source plus the call paths between them, including dynamic-dispatch hops grep can't follow. Name a file or symbol in the query to read its current line-numbered source. If it's listed but deferred, load it by name via tool search.
+- **Shell** (always works): `codegraph explore "<symbol names or question>"` prints the same output.
+
+If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
+<!-- CODEGRAPH_END -->
+```
 
 ### 本地 skill 场景映射
 
