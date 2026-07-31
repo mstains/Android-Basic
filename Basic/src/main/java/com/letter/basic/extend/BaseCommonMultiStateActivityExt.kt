@@ -17,7 +17,7 @@ import java.util.Locale
  * 切换 App 语言并自动重建当前 Activity。
  *
  * 内部流程：
- * 1. 委托 [AppLocale.set] 写入持久化 + 通知 [androidx.appcompat.app.AppCompatDelegate]
+ * 1. 委托 [AppLocale.set] 写入持久化（宿主注入的 [com.letter.basic.i18n.LocaleStorage]） + 通知 [androidx.appcompat.app.AppCompatDelegate]
  * 2. 调用 [android.app.Activity.recreate] 立即重建当前 Activity，避免看到一帧旧资源
  *
  * 适合"切完语言直接看到效果"的简单场景。
@@ -46,8 +46,8 @@ fun BaseCommonMultiStateActivity.switchLanguage(locale: Locale?) {
  * @param recreate 是否重建当前 Activity，默认 `true`
  */
 fun BaseCommonMultiStateActivity.applyLanguage(locale: Locale?, recreate: Boolean = true) {
-    // 1. 委托 AppLocale：写 prefs + 通知 AppCompatDelegate + 立即更新 current
-    AppLocale.set(locale, this)
+    // 1. 委托 AppLocale：写持久化（宿主注入的 LocaleStorage）+ 通知 AppCompatDelegate + 立即更新 current
+    AppLocale.set(locale)
     // 2. 按需 recreate：AppCompatDelegate 会触发其他 Activity 重建，
     //    此处显式 recreate 是为了"当前 Activity 立即刷新"，避免看到一帧旧资源
     if (recreate) {
