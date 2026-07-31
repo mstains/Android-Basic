@@ -263,6 +263,22 @@ Android SDK skill 统一通过 MCP 服务 `android-skills` 获取。
 
 不属于 Android SDK skill 的任务（如代码审查、Git 提交、编码规范），仍使用 `skill` 工具加载本地 skill。
 
+### CodeGraph 可用性检测与安装提示
+
+首次需要 CodeGraph 能力时（如：继承链扫描、工具函数防重复扫描、
+任何计划使用 `codegraph_explore` 的场景），先做一次只读检测，**本会话仅提示一次**：
+
+1. 检查 `codegraph_explore` 工具是否可用（MCP 已连接）
+   - 不可用 → CLI 未安装或 MCP 未配置 → 提示安装命令：
+     `curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh`
+     （或 `npm i -g @colbymchenry/codegraph`），完成后执行 `codegraph install` 接入 agent
+2. 检查项目根 `.codegraph/` 目录是否存在（glob / ls 只读操作）
+   - 不存在 → 提示 `codegraph init` 生成项目索引
+   - 存在 → 静默使用，不提示
+
+检测为纯只读操作，无论结果如何都不影响任务继续；
+CodeGraph 不可用时自动降级为 `glob` + `grep` + `read`（见上文规则）。
+
 ### 本地 skill 场景映射
 
 | 场景 | 必须加载的 skill |
