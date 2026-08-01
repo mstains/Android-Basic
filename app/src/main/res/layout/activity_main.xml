@@ -31,5 +31,12 @@
         android:layout_marginTop="15dp"
         android:text="语言切换" />
 
+    <Button
+        android:id="@+id/btLoginDemo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dp"
+        android:text="@string/app_login_demo_entry_text" />
+
 
 </androidx.appcompat.widget.LinearLayoutCompat>

@@ -14,6 +14,7 @@ import com.letter.basic.extend.registerActivityLauncher
 import com.letter.basic.extend.registerMultiplePermissionsLauncher
 import com.letter.basic.extend.registerMultiplePhotoPickerLauncher
 import com.letter.basic.extend.switchLanguage
+import com.letter.basic.login.LoginActivity
 import com.letter.basic.utils.toPermissionChineseNames
 import java.util.Locale
 
@@ -77,6 +78,11 @@ class MainActivity : BaseMultiStateVBActivity<ActivityMainBinding>() {
 
             activityLauncher.launchActivity<LanguageExampleActivity>(this)
 
+        }
+
+        // 本地登录演示入口：TabLayout + ViewPager2 双登录方式，纯本地无接口
+        viewBinding.btLoginDemo.setOnClickListener {
+            activityLauncher.launchActivity<LoginActivity>(this)
         }
 
 

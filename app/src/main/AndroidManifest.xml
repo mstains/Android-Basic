@@ -20,6 +20,9 @@
         android:theme="@style/Theme.BasicApplication"
         tools:targetApi="31">
         <activity
+            android:name=".login.LoginActivity"
+            android:exported="false" />
+        <activity
             android:name=".LanguageExampleActivity"
             android:exported="false" />
         <activity

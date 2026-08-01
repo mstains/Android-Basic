@@ -7,4 +7,27 @@
     <string name="app_change_chinese_text">Chinese</string>
 
     <string name="app_auto_system_language_text">System Auto</string>
+
+    <!-- Local Login Demo -->
+    <string name="app_login_demo_entry_text">Local Login Demo</string>
+    <string name="app_login_title_text">Local Login Demo</string>
+    <string name="app_login_account_tab_text">Account</string>
+    <string name="app_login_phone_tab_text">Phone</string>
+    <string name="app_login_button_text">LOGIN</string>
+    <string name="app_login_get_code_text">Get Code</string>
+    <string name="app_login_resend_code_text">Resend in %1$s s</string>
+    <string name="app_login_username_hint_text">Username</string>
+    <string name="app_login_password_hint_text">Password</string>
+    <string name="app_login_phone_hint_text">Phone number</string>
+    <string name="app_login_code_hint_text">Verify code</string>
+    <string name="app_login_username_empty_text">Please enter username</string>
+    <string name="app_login_password_empty_text">Please enter password</string>
+    <string name="app_login_phone_invalid_text">Please enter a valid phone number</string>
+    <string name="app_login_code_empty_text">Please enter the code</string>
+    <string name="app_login_code_invalid_text">Invalid code format</string>
+    <string name="app_login_success_text">Login success</string>
+    <string name="app_login_account_error_text">Incorrect username or password</string>
+    <string name="app_login_phone_not_registered_text">Phone number not registered</string>
+    <string name="app_login_code_error_text">Incorrect code</string>
+    <string name="app_login_code_sent_text">Code sent, please check: %1$s</string>
 </resources>
