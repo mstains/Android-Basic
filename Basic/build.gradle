@@ -9,7 +9,7 @@ plugins {
 group = 'com.github.mstains' // 替换为你的GitHub用户名
 
 def VERSION_CODE = 1
-def VERSION_NAME = "1.5"
+def VERSION_NAME = "1.6"
 def GROUP_ID = 'com.github.mstains'
 def ARTIFACT_ID = 'android-basic'
 
