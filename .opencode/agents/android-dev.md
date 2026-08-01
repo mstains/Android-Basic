@@ -35,6 +35,7 @@ permission:
    - 按功能分包的项目：新功能 → 对应功能子包（如 `login/`、`home/`）
    - 风格不明确时，保持与最近同类文件的包层级一致
 3. 不在根包下创建文件（除非根包已有同类文件，如入口 Activity）
+4. 若无法识别项目风格，推荐一些项目风格让开发者选择
 
 ### 创建或修改AGENTS.md文件规则(特别注意)
 
@@ -50,7 +51,7 @@ permission:
 
 **阶段二：兜底补充**
 对常见 Android 组件基类（`Activity` / `Fragment` / `Service` / `BroadcastReceiver` /
-`ContentProvider` / `ViewModel` / `DialogFragment` / `Application` 等）做兜底搜索，
+`ContentProvider` / `ViewModel` / `DialogFragment` / `Application`/ `Adapter` 等）做兜底搜索，
 找出不存在自定义中间基类、直接继承框架类的「扁平继承」节点，补充到对应族系中。
 
 **产出归纳**
